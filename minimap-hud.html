@@ -9,9 +9,7 @@
       background: transparent; overflow: hidden;
       font-family: Inter, -apple-system, sans-serif;
     }
-    .frame {
-      position: relative; width: 100%; height: 100%; box-sizing: border-box;
-    }
+    .frame { position: relative; width: 100%; height: 100%; box-sizing: border-box; }
     .frame.calibrating {
       border: 2px dashed rgba(56, 189, 248, 0.95);
       background: rgba(56, 189, 248, 0.12);
@@ -19,7 +17,7 @@
     .mini-badge {
       position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
       padding: 2px 8px; border-radius: 999px;
-      background: rgba(9, 11, 15, 0.82);
+      background: rgba(9, 11, 15, 0.84);
       border: 1px solid rgba(255, 255, 255, 0.22);
       color: #f1f5f9; font-size: 9px; font-weight: 600;
       letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
@@ -38,18 +36,17 @@
   </div>
   <script>
     let state = {
-      clock_time: 0, effective_team: 'radiant', role: 'Carry',
+      clock_time: 0, effective_team: 'radiant', role: 'auto',
       has_observer: false, has_sentry: false,
       xpos: null, ypos: null,
       show_wards: true, show_farm: true, show_path: true, calibrate: false
     };
 
-    // Отслеживаем зафармленные кемпы внутри текущей минуты (сброс в :00)
     let lastMinute = -1;
     let clearedCamps = new Set();
+    let detectedRole = 'pos1';
     let dash = 0;
 
-    // Конвертация мировых координат Dota 2 (-8200..8200) в [0..1] миникарты
     function worldToMap(xpos, ypos) {
       if (typeof xpos !== 'number' || typeof ypos !== 'number') return null;
       const nx = Math.max(0.02, Math.min(0.98, (xpos + 8200) / 16400));
@@ -57,86 +54,161 @@
       return { x: nx, y: ny };
     }
 
-    // Раздельные маршруты фарма и варды для Radiant и Dire
-    function getSideData(st) {
+    // Автоопределение линии по позиции героя на карте
+    function updateAutoRole(heroPos, isDire) {
+      if (!heroPos) return;
+      const { x, y } = heroPos;
+      // Центр карты (мид)
+      if (Math.abs(x - (1 - y)) < 0.14 && x > 0.28 && x < 0.72) {
+        detectedRole = 'pos2';
+        return;
+      }
+      // Верх-лево (топ)
+      if (x < 0.35 && y < 0.55) {
+        detectedRole = isDire ? 'pos1' : 'pos3';
+        return;
+      }
+      // Низ-право (бот)
+      if (x > 0.55 && y > 0.55) {
+        detectedRole = isDire ? 'pos3' : 'pos1';
+      }
+    }
+
+    function getSideData(st, heroPos) {
       const isDire = String(st.effective_team || 'radiant').toLowerCase() === 'dire';
       const sec = st.clock_time || 0;
-
-      if (!isDire) {
-        // СИЛА СВЕТА (RADIANT)
-        const camps = sec < 600
-          ? [
-              { id: 'r1', x: 0.68, y: 0.85, name: 'Малый бот' },
-              { id: 'r2', x: 0.54, y: 0.78, name: 'Большой бот' },
-              { id: 'r3', x: 0.44, y: 0.73, name: 'Средний лес' },
-              { id: 'r4', x: 0.34, y: 0.62, name: 'Кемп у мида' }
-            ]
-          : [
-              { id: 'r_anc', x: 0.23, y: 0.50, name: 'Древние (треуг.)' },
-              { id: 'r_tri', x: 0.17, y: 0.43, name: 'Большой треуг.' },
-              { id: 'r_mid', x: 0.34, y: 0.62, name: 'Центр лес' },
-              { id: 'r_bot1', x: 0.52, y: 0.75, name: 'Нижний лес' },
-              { id: 'r_bot2', x: 0.67, y: 0.83, name: 'Крайний бот' }
-            ];
-
-        const wards = sec < 480
-          ? [
-              { x: 0.39, y: 0.38, t: 'obs' },
-              { x: 0.57, y: 0.54, t: 'obs' },
-              { x: 0.77, y: 0.84, t: 'sen' }
-            ]
-          : [
-              { x: 0.44, y: 0.17, t: 'obs' },
-              { x: 0.67, y: 0.51, t: 'obs' },
-              { x: 0.28, y: 0.46, t: 'sen' }
-            ];
-
-        return { camps, wards };
-      } else {
-        // СИЛА ТЬМЫ (DIRE)
-        const camps = sec < 600
-          ? [
-              { id: 'd1', x: 0.30, y: 0.12, name: 'Малый топ' },
-              { id: 'd2', x: 0.44, y: 0.19, name: 'Большой топ' },
-              { id: 'd3', x: 0.54, y: 0.24, name: 'Средний лес' },
-              { id: 'd4', x: 0.63, y: 0.35, name: 'Кемп у мида' }
-            ]
-          : [
-              { id: 'd_anc', x: 0.73, y: 0.48, name: 'Древние (треуг.)' },
-              { id: 'd_tri', x: 0.81, y: 0.54, name: 'Большой треуг.' },
-              { id: 'd_mid', x: 0.63, y: 0.35, name: 'Центр лес' },
-              { id: 'd_top1', x: 0.46, y: 0.22, name: 'Верхний лес' },
-              { id: 'd_top2', x: 0.31, y: 0.13, name: 'Крайний топ' }
-            ];
-
-        const wards = sec < 480
-          ? [
-              { x: 0.57, y: 0.54, t: 'obs' },
-              { x: 0.39, y: 0.38, t: 'obs' },
-              { x: 0.22, y: 0.14, t: 'sen' }
-            ]
-          : [
-              { x: 0.54, y: 0.78, t: 'obs' },
-              { x: 0.28, y: 0.46, t: 'obs' },
-              { x: 0.67, y: 0.51, t: 'sen' }
-            ];
-
-        return { camps, wards };
+      let pos = st.role || 'auto';
+      if (pos === 'Carry') pos = 'pos1';
+      if (pos === 'auto') {
+        updateAutoRole(heroPos, isDire);
+        pos = detectedRole;
       }
+
+      const isSupport = (pos === 'pos4' || pos === 'pos5');
+
+      // СИЛА СВЕТА (RADIANT)
+      if (!isDire) {
+        if (pos === 'pos1') {
+          return {
+            label: 'ПОЗ 1 • КЕРРИ',
+            camps: sec < 600
+              ? [{ id: 'r1a', x: 0.68, y: 0.85, name: 'Малый бот' }, { id: 'r1b', x: 0.54, y: 0.78, name: 'Большой бот' }, { id: 'r1c', x: 0.44, y: 0.73, name: 'Средний лес' }]
+              : [{ id: 'r1d', x: 0.23, y: 0.50, name: 'Древние' }, { id: 'r1e', x: 0.17, y: 0.43, name: 'Треугольник' }, { id: 'r1f', x: 0.34, y: 0.62, name: 'Центр лес' }, { id: 'r1g', x: 0.52, y: 0.75, name: 'Нижний лес' }],
+            wards: [{ x: 0.54, y: 0.78, t: 'obs' }, { x: 0.28, y: 0.46, t: 'obs' }, { x: 0.77, y: 0.84, t: 'sen' }]
+          };
+        }
+        if (pos === 'pos2') {
+          return {
+            label: 'ПОЗ 2 • МИД',
+            camps: [
+              { id: 'r2a', x: 0.34, y: 0.62, name: 'Кемп у мида' },
+              { id: 'r2b', x: 0.44, y: 0.73, name: 'Нижний мид' },
+              { id: 'r2c', x: 0.39, y: 0.38, name: 'Верхняя руна' },
+              { id: 'r2d', x: 0.57, y: 0.54, name: 'Нижняя руна' }
+            ],
+            wards: [{ x: 0.39, y: 0.38, t: 'obs' }, { x: 0.57, y: 0.54, t: 'obs' }, { x: 0.48, y: 0.48, t: 'sen' }]
+          };
+        }
+        if (pos === 'pos3') {
+          return {
+            label: 'ПОЗ 3 • ОФФЛЕЙН',
+            camps: sec < 600
+              ? [{ id: 'r3a', x: 0.16, y: 0.24, name: 'Кемп топа' }, { id: 'r3b', x: 0.23, y: 0.50, name: 'Треугольник' }, { id: 'r3c', x: 0.30, y: 0.14, name: 'Пул Dire' }]
+              : [{ id: 'r3d', x: 0.31, y: 0.14, name: 'Лес Dire топ' }, { id: 'r3e', x: 0.44, y: 0.20, name: 'Центр Dire' }, { id: 'r3f', x: 0.23, y: 0.50, name: 'Древние' }],
+            wards: [{ x: 0.44, y: 0.17, t: 'obs' }, { x: 0.30, y: 0.29, t: 'obs' }, { x: 0.22, y: 0.14, t: 'sen' }]
+          };
+        }
+        if (pos === 'pos4') {
+          return {
+            label: 'ПОЗ 4 • РОУМ',
+            camps: [
+              { id: 'r4a', x: 0.05, y: 0.20, name: 'Лотос топ' },
+              { id: 'r4b', x: 0.14, y: 0.32, name: 'Алтарь мудрости' },
+              { id: 'r4c', x: 0.39, y: 0.38, name: 'Выход в мид' },
+              { id: 'r4d', x: 0.67, y: 0.51, name: 'Смок в Dire' }
+            ],
+            wards: [{ x: 0.44, y: 0.17, t: 'obs' }, { x: 0.67, y: 0.51, t: 'obs' }, { x: 0.22, y: 0.14, t: 'sen' }],
+            isSupport
+          };
+        }
+        return {
+          label: 'ПОЗ 5 • САППОРТ',
+          camps: [
+            { id: 'r5a', x: 0.68, y: 0.85, name: 'Пул / Стак' },
+            { id: 'r5b', x: 0.94, y: 0.76, name: 'Лотос бот' },
+            { id: 'r5c', x: 0.54, y: 0.78, name: 'Стак леса' },
+            { id: 'r5d', x: 0.14, y: 0.32, name: 'Алтарь мудрости' }
+          ],
+          wards: [{ x: 0.57, y: 0.54, t: 'obs' }, { x: 0.28, y: 0.46, t: 'obs' }, { x: 0.77, y: 0.84, t: 'sen' }],
+          isSupport: true
+        };
+      }
+
+      // СИЛА ТЬМЫ (DIRE)
+      if (pos === 'pos1') {
+        return {
+          label: 'ПОЗ 1 • КЕРРИ',
+          camps: sec < 600
+            ? [{ id: 'd1a', x: 0.30, y: 0.12, name: 'Малый топ' }, { id: 'd1b', x: 0.44, y: 0.19, name: 'Большой топ' }, { id: 'd1c', x: 0.54, y: 0.24, name: 'Средний лес' }]
+            : [{ id: 'd1d', x: 0.73, y: 0.48, name: 'Древние' }, { id: 'd1e', x: 0.81, y: 0.54, name: 'Треугольник' }, { id: 'd1f', x: 0.63, y: 0.35, name: 'Центр лес' }, { id: 'd1g', x: 0.46, y: 0.22, name: 'Верхний лес' }],
+          wards: [{ x: 0.44, y: 0.17, t: 'obs' }, { x: 0.67, y: 0.51, t: 'obs' }, { x: 0.22, y: 0.14, t: 'sen' }]
+        };
+      }
+      if (pos === 'pos2') {
+        return {
+          label: 'ПОЗ 2 • МИД',
+          camps: [
+            { id: 'd2a', x: 0.63, y: 0.35, name: 'Кемп у мида' },
+            { id: 'd2b', x: 0.54, y: 0.24, name: 'Верхний мид' },
+            { id: 'd2c', x: 0.57, y: 0.54, name: 'Нижняя руна' },
+            { id: 'd2d', x: 0.39, y: 0.38, name: 'Верхняя руна' }
+          ],
+          wards: [{ x: 0.57, y: 0.54, t: 'obs' }, { x: 0.39, y: 0.38, t: 'obs' }, { x: 0.50, y: 0.50, t: 'sen' }]
+        };
+      }
+      if (pos === 'pos3') {
+        return {
+          label: 'ПОЗ 3 • ОФФЛЕЙН',
+          camps: sec < 600
+            ? [{ id: 'd3a', x: 0.83, y: 0.74, name: 'Кемп бота' }, { id: 'd3b', x: 0.73, y: 0.48, name: 'Треугольник' }, { id: 'd3c', x: 0.68, y: 0.85, name: 'Пул Rad' }]
+            : [{ id: 'd3d', x: 0.67, y: 0.84, name: 'Лес Rad бот' }, { id: 'd3e', x: 0.54, y: 0.78, name: 'Центр Rad' }, { id: 'd3f', x: 0.73, y: 0.48, name: 'Древние' }],
+          wards: [{ x: 0.54, y: 0.78, t: 'obs' }, { x: 0.68, y: 0.65, t: 'obs' }, { x: 0.77, y: 0.84, t: 'sen' }]
+        };
+      }
+      if (pos === 'pos4') {
+        return {
+          label: 'ПОЗ 4 • РОУМ',
+          camps: [
+            { id: 'd4a', x: 0.94, y: 0.76, name: 'Лотос бот' },
+            { id: 'd4b', x: 0.85, y: 0.66, name: 'Алтарь мудрости' },
+            { id: 'd4c', x: 0.57, y: 0.54, name: 'Выход в мид' },
+            { id: 'd4d', x: 0.28, y: 0.46, name: 'Смок в Rad' }
+          ],
+          wards: [{ x: 0.54, y: 0.78, t: 'obs' }, { x: 0.28, y: 0.46, t: 'obs' }, { x: 0.77, y: 0.84, t: 'sen' }],
+          isSupport
+        };
+      }
+      return {
+        label: 'ПОЗ 5 • САППОРТ',
+        camps: [
+          { id: 'd5a', x: 0.30, y: 0.12, name: 'Пул / Стак' },
+          { id: 'd5b', x: 0.05, y: 0.20, name: 'Лотос топ' },
+          { id: 'd5c', x: 0.44, y: 0.19, name: 'Стак леса' },
+          { id: 'd5d', x: 0.85, y: 0.66, name: 'Алтарь мудрости' }
+        ],
+        wards: [{ x: 0.39, y: 0.38, t: 'obs' }, { x: 0.67, y: 0.51, t: 'obs' }, { x: 0.22, y: 0.14, t: 'sen' }],
+        isSupport: true
+      };
     }
 
     function drawArrow(ctx, x1, y1, x2, y2, color) {
       const ang = Math.atan2(y2 - y1, x2 - x1);
-      const mx = (x1 + x2) * 0.5;
-      const my = (y1 + y2) * 0.5;
+      const mx = (x1 + x2) * 0.5, my = (y1 + y2) * 0.5;
       ctx.save();
-      ctx.translate(mx, my);
-      ctx.rotate(ang);
+      ctx.translate(mx, my); ctx.rotate(ang);
       ctx.beginPath();
       ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-2, 0); ctx.lineTo(-4, 4);
-      ctx.closePath();
-      ctx.fillStyle = color;
-      ctx.fill();
+      ctx.closePath(); ctx.fillStyle = color; ctx.fill();
       ctx.restore();
     }
 
@@ -148,28 +220,25 @@
 
       document.getElementById('miniFrame').classList.toggle('calibrating', Boolean(state.calibrate));
 
-      // Сброс зафармленных кемпов в начале новой минуты (крипы возродились)
       const curMin = Math.floor(Math.max(0, state.clock_time || 0) / 60);
       if (curMin !== lastMinute) {
         clearedCamps.clear();
         lastMinute = curMin;
       }
 
-      const { camps, wards } = getSideData(state);
       const heroPos = worldToMap(state.xpos, state.ypos);
+      const { camps, wards, label, isSupport } = getSideData(state, heroPos);
 
-      // Если герой подошёл к кемпу — отмечаем его зафармленным
       if (heroPos) {
         camps.forEach(cp => {
-          if (Math.hypot(heroPos.x - cp.x, heroPos.y - cp.y) < 0.068) {
-            clearedCamps.add(cp.id);
-          }
+          if (Math.hypot(heroPos.x - cp.x, heroPos.y - cp.y) < 0.068) clearedCamps.add(cp.id);
         });
       }
 
       const remaining = camps.filter(cp => !clearedCamps.has(cp.id));
       const nextCamp = remaining[0] || null;
       const pulse = (Math.sin(Date.now() / 220) + 1) * 0.5;
+      const accent = isSupport ? '#38bdf8' : '#4ade80';
 
       const badge = document.getElementById('miniBadge');
       if (state.calibrate) {
@@ -179,14 +248,14 @@
         badge.textContent = 'ПОСТАВЬ ВАРД';
         badge.classList.add('ward-on');
       } else if (nextCamp) {
-        badge.textContent = `ФАРМ: ${nextCamp.name}`;
+        badge.textContent = `${label}: ${nextCamp.name}`;
         badge.classList.remove('ward-on');
       } else {
-        badge.textContent = 'ЖДИ РЕСПАВН :00';
+        badge.textContent = `${label} • ЖДИ :00`;
         badge.classList.remove('ward-on');
       }
 
-      // 1. Кемпы фарма (активные зелёные, следующий ярко пульсирует, зафармленные серые с галочкой)
+      // 1. Кемпы / точки активности роли
       if (state.show_farm !== false) {
         camps.forEach(cp => {
           const x = cp.x * w, y = cp.y * h;
@@ -194,46 +263,35 @@
           const isNext = nextCamp && nextCamp.id === cp.id;
 
           if (isCleared) {
-            ctx.beginPath();
-            ctx.arc(x, y, 6, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(148, 163, 184, 0.35)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(148, 163, 184, 0.7)';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(x - 3, y); ctx.lineTo(x - 1, y + 2.5); ctx.lineTo(x + 3.5, y - 2.5);
-            ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.35)'; ctx.fill();
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.75)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(x - 3, y); ctx.lineTo(x - 1, y + 2.5); ctx.lineTo(x + 3.5, y - 2.5); ctx.stroke();
           } else {
-            const r = isNext ? 12 + pulse * 6 : 9;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.fillStyle = isNext ? 'rgba(74, 222, 128, 0.30)' : 'rgba(74, 222, 128, 0.14)';
+            const r = isNext ? 11 + pulse * 6 : 8.5;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = isSupport ? 'rgba(56, 189, 248, 0.22)' : 'rgba(74, 222, 128, 0.24)';
             ctx.fill();
-            ctx.strokeStyle = isNext ? '#4ade80' : 'rgba(74, 222, 128, 0.65)';
-            ctx.lineWidth = isNext ? 2.2 : 1.3;
-            ctx.stroke();
+            ctx.strokeStyle = accent; ctx.lineWidth = isNext ? 2.2 : 1.3; ctx.stroke();
           }
         });
       }
 
-      // 2. Маршрут фарма от героя к следующему незафармленному кемпу и далее по цепочке
+      // 2. Маршрут от героя к следующей точке
       if (state.show_path !== false && remaining.length > 0) {
         const pts = heroPos ? [heroPos, ...remaining] : remaining;
         if (pts.length > 1) {
           ctx.save();
-          ctx.strokeStyle = 'rgba(241, 245, 249, 0.9)';
-          ctx.lineWidth = 2.2;
-          ctx.setLineDash([7, 5]);
-          ctx.lineDashOffset = -dash;
+          ctx.strokeStyle = 'rgba(241, 245, 249, 0.9)'; ctx.lineWidth = 2.2;
+          ctx.setLineDash([7, 5]); ctx.lineDashOffset = -dash;
           ctx.beginPath();
           pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x * w, p.y * h) : ctx.lineTo(p.x * w, p.y * h));
-          ctx.stroke();
-          ctx.restore();
-          drawArrow(ctx, pts[0].x * w, pts[0].y * h, pts[1].x * w, pts[1].y * h, '#4ade80');
+          ctx.stroke(); ctx.restore();
+          drawArrow(ctx, pts[0].x * w, pts[0].y * h, pts[1].x * w, pts[1].y * h, accent);
         }
       }
 
-      // 3. Точки вардов (Observer жёлтые, Sentry голубые)
+      // 3. Варды
       if (state.show_wards !== false) {
         wards.forEach(wd => {
           const x = wd.x * w, y = wd.y * h;
@@ -242,30 +300,19 @@
           const color = isObs ? '#facc15' : '#38bdf8';
 
           ctx.save();
-          ctx.shadowColor = color;
-          ctx.shadowBlur = active ? 16 : 7;
-          ctx.beginPath();
-          ctx.arc(x, y, active ? 7 + pulse * 7 : 5.5, 0, Math.PI * 2);
-          ctx.strokeStyle = color;
-          ctx.lineWidth = active ? 2.5 : 1.5;
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(x, y, 3.8, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
+          ctx.shadowColor = color; ctx.shadowBlur = active ? 16 : 7;
+          ctx.beginPath(); ctx.arc(x, y, active ? 7 + pulse * 7 : 5.5, 0, Math.PI * 2);
+          ctx.strokeStyle = color; ctx.lineWidth = active ? 2.5 : 1.5; ctx.stroke();
+          ctx.beginPath(); ctx.arc(x, y, 3.8, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
           ctx.restore();
         });
       }
 
-      // 4. Живая точка героя
+      // 4. Живая позиция героя
       if (heroPos) {
-        ctx.beginPath();
-        ctx.arc(heroPos.x * w, heroPos.y * h, 4.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        ctx.strokeStyle = '#090b0f';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+        ctx.beginPath(); ctx.arc(heroPos.x * w, heroPos.y * h, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff'; ctx.fill();
+        ctx.strokeStyle = '#090b0f'; ctx.lineWidth = 1.5; ctx.stroke();
       }
 
       dash = (dash + 0.55) % 24;
