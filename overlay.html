@@ -8,71 +8,46 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Inter, -apple-system, sans-serif;
-      color: #f1f5f9;
-      background: transparent;
-      user-select: none;
+      color: #f1f5f9; background: transparent; user-select: none;
     }
     .hud {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 14px;
+      height: 100vh; display: flex; flex-direction: column; gap: 10px; padding: 14px;
       border-radius: 20px;
       background: linear-gradient(165deg, rgba(16, 19, 25, var(--hud-alpha)), rgba(9, 11, 15, var(--hud-alpha)));
-      backdrop-filter: blur(22px);
-      -webkit-backdrop-filter: blur(22px);
+      backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
       border: 1px solid rgba(255, 255, 255, 0.13);
       box-shadow: 0 24px 60px rgba(0, 0, 0, 0.78), inset 0 1px 0 rgba(255, 255, 255, 0.08);
       overflow: hidden;
     }
-
     .top-bar {
-      -webkit-app-region: drag;
-      display: flex; justify-content: space-between; align-items: center;
-      padding-bottom: 9px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      -webkit-app-region: drag; display: flex; justify-content: space-between; align-items: center;
+      padding-bottom: 9px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
     .brand { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.16em; }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.6); }
     .dot.on { background: #22c55e; box-shadow: 0 0 12px rgba(34,197,94,0.9); }
-
     .badge {
-      font-family: Consolas, monospace; font-size: 10.5px;
-      padding: 3px 9px; border-radius: 999px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.12);
-      color: #cbd5e1;
+      font-family: Consolas, monospace; font-size: 10.5px; padding: 3px 9px; border-radius: 999px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1;
     }
-
-    /* Верхняя карточка состояния матча */
     .live-card {
       display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
       padding: 11px 13px; border-radius: 14px;
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .bars { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
     .bar { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
     .bar-hp { height: 100%; background: linear-gradient(90deg, #16a34a, #4ade80); transition: width 0.25s; }
     .bar-mp { height: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); transition: width 0.25s; }
 
-    /* Навигация */
     .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
     .btn {
-      background: rgba(255, 255, 255, 0.045);
-      color: #cbd5e1;
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 10px;
-      padding: 8px 6px; font-size: 11.5px; font-weight: 600;
-      cursor: pointer; transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.045); color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 10px;
+      padding: 8px 4px; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
     }
     .btn:hover { background: rgba(255, 255, 255, 0.09); color: #fff; }
-    .btn.active {
-      background: rgba(241, 245, 249, 0.16);
-      border-color: rgba(241, 245, 249, 0.38);
-      color: #fff;
-    }
+    .btn.active { background: rgba(241, 245, 249, 0.18); border-color: rgba(241, 245, 249, 0.42); color: #fff; }
     .btn.rad { border-color: rgba(74, 222, 128, 0.5); color: #86efac; }
     .btn.dire { border-color: rgba(248, 113, 113, 0.5); color: #fca5a5; }
 
@@ -83,22 +58,18 @@
 
     .box {
       padding: 11px 12px; border-radius: 13px;
-      background: rgba(255, 255, 255, 0.032);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.032); border: 1px solid rgba(255, 255, 255, 0.08);
       font-size: 12px; line-height: 1.45;
     }
     .muted { color: #94a3b8; font-size: 11px; }
-
     .timer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
     .timer-tile {
       padding: 9px 6px; border-radius: 11px; text-align: center;
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .timer-val { font-family: Consolas, monospace; font-size: 15px; font-weight: 700; color: #f8fafc; margin-top: 3px; }
-
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
     .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .row6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
 
     select {
       width: 100%; padding: 8px 9px; border-radius: 10px;
@@ -106,19 +77,15 @@
       border: 1px solid rgba(255,255,255,0.14); font-size: 12px; outline: none;
     }
     input[type="range"] { width: 100%; accent-color: #f1f5f9; cursor: pointer; }
-
     .counter-item {
       display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 9px;
       padding: 7px 9px; border-radius: 10px;
-      background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08);
-      font-size: 12px;
+      background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); font-size: 12px;
     }
     .counter-item img { width: 38px; height: 22px; border-radius: 4px; object-fit: cover; }
-
     .alert-ward {
       padding: 8px 11px; border-radius: 10px;
-      background: rgba(250, 204, 21, 0.14);
-      border: 1px solid rgba(250, 204, 21, 0.45);
+      background: rgba(250, 204, 21, 0.14); border: 1px solid rgba(250, 204, 21, 0.45);
       color: #fef08a; font-size: 11.5px; display: none;
     }
     .alert-ward.show { display: block; }
@@ -127,10 +94,7 @@
 <body>
   <div class="hud">
     <div class="top-bar">
-      <div class="brand">
-        <span class="dot" id="liveDot"></span>
-        <span>OPEX META</span>
-      </div>
+      <div class="brand"><span class="dot" id="liveDot"></span><span>OPEX META</span></div>
       <span class="badge" id="gsiBadge">Ожидание Dota 2</span>
     </div>
 
@@ -157,27 +121,31 @@
       <button class="btn" onclick="openTab('tabSetup', this)">Настройка</button>
     </div>
 
-    <!-- ВКЛАДКА 1: МАТЧ -->
+    <!-- МАТЧ -->
     <div id="tabGame" class="panel active">
       <div id="wardAlert" class="alert-ward">Вард в инвентаре: ставь в пульсирующие точки на миникарте.</div>
 
       <div class="timer-grid">
-        <div class="timer-tile">
-          <div class="muted">Стак (:54)</div>
-          <div class="timer-val" id="tStack">--</div>
-        </div>
-        <div class="timer-tile">
-          <div class="muted">Лотос (3м)</div>
-          <div class="timer-val" id="tLotus">--:--</div>
-        </div>
-        <div class="timer-tile">
-          <div class="muted">Алтарь мудрости</div>
-          <div class="timer-val" id="tShrine">--:--</div>
-        </div>
+        <div class="timer-tile"><div class="muted">Стак (:54)</div><div class="timer-val" id="tStack">--</div></div>
+        <div class="timer-tile"><div class="muted">Лотос (3м)</div><div class="timer-val" id="tLotus">--:--</div></div>
+        <div class="timer-tile"><div class="muted">Алтарь мудрости</div><div class="timer-val" id="tShrine">--:--</div></div>
       </div>
 
       <div class="box">
-        <div class="muted" style="margin-bottom:6px;">Сторона (авто в матче, можно переключить вручную):</div>
+        <div class="muted" style="margin-bottom:6px;">Твоя позиция (меняет фарм, маршруты и варды):</div>
+        <div class="row6" id="posBtns">
+          <button class="btn active" data-pos="auto" onclick="setPos('auto', this)">Авто</button>
+          <button class="btn" data-pos="pos1" onclick="setPos('pos1', this)">1</button>
+          <button class="btn" data-pos="pos2" onclick="setPos('pos2', this)">2</button>
+          <button class="btn" data-pos="pos3" onclick="setPos('pos3', this)">3</button>
+          <button class="btn" data-pos="pos4" onclick="setPos('pos4', this)">4</button>
+          <button class="btn" data-pos="pos5" onclick="setPos('pos5', this)">5</button>
+        </div>
+        <div id="posHint" class="muted" style="margin-top:6px;">Авто: определяет линию сам по твоим координатам в игре.</div>
+      </div>
+
+      <div class="box">
+        <div class="muted" style="margin-bottom:6px;">Сторона (авто в матче, можно переключить):</div>
         <div class="row3">
           <button class="btn active" id="btnAutoSide" onclick="setSide(null)">Авто</button>
           <button class="btn rad" id="btnRadSide" onclick="setSide('radiant')">Свет</button>
@@ -186,21 +154,16 @@
       </div>
 
       <div class="box">
-        <div class="muted" style="margin-bottom:6px;">Слои поверх миникарты:</div>
+        <div class="muted" style="margin-bottom:6px;">Слои на миникарте:</div>
         <div class="row3">
           <button class="btn active" id="lWards" onclick="toggleLayer('show_wards', this)">Варды</button>
           <button class="btn active" id="lFarm" onclick="toggleLayer('show_farm', this)">Фарм</button>
           <button class="btn active" id="lPath" onclick="toggleLayer('show_path', this)">Путь</button>
         </div>
       </div>
-
-      <div class="box">
-        <div style="font-weight:600; margin-bottom:4px;">Как работает трекинг фарма</div>
-        <div class="muted">Зелёный круг — активный кемп. Как только ты проходишь и забираешь его, он помечается галочкой, а стрелка ведёт к следующему. В :00 каждой минуты кемпы обновляются.</div>
-      </div>
     </div>
 
-    <!-- ВКЛАДКА 2: КОНТРПИКИ -->
+    <!-- КОНТРПИКИ -->
     <div id="tabDraft" class="panel">
       <div class="box">
         <div class="muted" style="margin-bottom:5px;">Кого нужно законтрпикать:</div>
@@ -218,7 +181,7 @@
       <div id="countersOut" style="display:flex; flex-direction:column; gap:6px;"></div>
     </div>
 
-    <!-- ВКЛАДКА 3: КАЛИБРОВКА МИНИКАРТЫ И GSI -->
+    <!-- НАСТРОЙКА -->
     <div id="tabSetup" class="panel">
       <div class="box">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -227,9 +190,9 @@
         </div>
         <div class="muted" style="margin-bottom:4px;">Размер миникарты: <span id="vSize">275</span>px</div>
         <input type="range" id="rSize" min="180" max="420" value="275" oninput="updateMiniBounds()" />
-        <div class="muted" style="margin:7px 0 4px;">Сдвиг влево / вправо (X): <span id="vX">0</span>px</div>
+        <div class="muted" style="margin:7px 0 4px;">Сдвиг X: <span id="vX">0</span>px</div>
         <input type="range" id="rX" min="0" max="1650" value="0" oninput="updateMiniBounds()" />
-        <div class="muted" style="margin:7px 0 4px;">Сдвиг вверх / вниз (Y): <span id="vY">800</span>px</div>
+        <div class="muted" style="margin:7px 0 4px;">Сдвиг Y: <span id="vY">800</span>px</div>
         <input type="range" id="rY" min="400" max="1250" value="800" oninput="updateMiniBounds()" />
       </div>
 
@@ -242,18 +205,26 @@
       </div>
 
       <div class="box muted">
-        <div><strong>Ctrl + Shift + O</strong> — скрыть / показать это окно</div>
-        <div style="margin-top:4px;"><strong>Ctrl + Shift + M</strong> — скрыть / показать слой миникарты</div>
+        <div><strong>Ctrl + Shift + O</strong> : скрыть / показать это окно</div>
+        <div style="margin-top:4px;"><strong>Ctrl + Shift + M</strong> : скрыть / показать слой миникарты</div>
       </div>
     </div>
   </div>
 
   <script>
     const CDN = 'https://cdn.cloudflare.steamstatic.com';
+    const POS_HINTS = {
+      auto: 'Авто: определяет линию сам по твоим координатам в игре.',
+      pos1: 'Поз 1 (Керри): безопасная линия, лес и круг в треугольнике.',
+      pos2: 'Поз 2 (Мид): кемпы у мида, руны реки и ганки.',
+      pos3: 'Поз 3 (Оффлейн): сложная линия и захват вражеского леса.',
+      pos4: 'Поз 4 (Саппорт): блок пула врага, роум, глубокие варды и Алтарь.',
+      pos5: 'Поз 5 (Фулл-сап): сейвовые варды, стаки, Лотос и Алтарь мудрости.'
+    };
+
     let heroes = [], heroMap = {};
     let layerState = { show_wards: true, show_farm: true, show_path: true };
-    let calibrating = false;
-    let miniInitDone = false;
+    let calibrating = false, miniInitDone = false;
 
     function openTab(id, btn) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -267,6 +238,13 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       }).catch(() => {});
+    }
+
+    function setPos(pos, btn) {
+      document.querySelectorAll('#posBtns .btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('posHint').textContent = POS_HINTS[pos] || '';
+      sendControl({ role: pos });
     }
 
     function setSide(side) {
@@ -303,7 +281,7 @@
       const res = await fetch('http://127.0.0.1:4000/reinstall-cfg', { method: 'POST' });
       const d = await res.json();
       document.getElementById('gsiInfo').textContent = d.installed
-        ? `Конфиг установлен! Перезапустите Dota 2.`
+        ? 'Конфиг установлен. Перезапусти Dota 2.'
         : `Не найдено: ${d.error}`;
     }
 
@@ -322,63 +300,4 @@
       const role = document.getElementById('laneSelect').value;
       const out = document.getElementById('countersOut');
       out.innerHTML = '<div class="muted">Считаем...</div>';
-      const res = await fetch(`https://api.opendota.com/api/heroes/${enemyId}/matchups`);
-      const list = await res.json();
-      const best = list
-        .filter(m => m.games_played >= 40 && heroMap[m.hero_id])
-        .filter(m => role === 'all' || (heroMap[m.hero_id].roles || []).includes(role))
-        .map(m => ({ hero: heroMap[m.hero_id], wr: (1 - m.wins / m.games_played) * 100 }))
-        .sort((a, b) => b.wr - a.wr).slice(0, 7);
-      out.innerHTML = best.map(i => {
-        const short = i.hero.name.replace('npc_dota_hero_', '');
-        return `<div class="counter-item"><img src="${CDN}/apps/dota2/images/dota_react/heroes/${short}.png" /><span>${i.hero.localized_name}</span><strong>${i.wr.toFixed(1)}%</strong></div>`;
-      }).join('') || '<div class="muted">Нет данных</div>';
-    }
-
-    function fmt(sec) {
-      const s = Math.max(0, Math.floor(sec));
-      return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-    }
-
-    async function poll() {
-      try {
-        const res = await fetch('http://127.0.0.1:4000/state');
-        const st = await res.json();
-
-        document.getElementById('liveDot').classList.toggle('on', Boolean(st.connected));
-        document.getElementById('gsiBadge').textContent = st.connected ? 'DOTA 2 LIVE' : 'Ожидание матча';
-        document.getElementById('clockTxt').textContent = fmt(st.clock_time || 0);
-        document.getElementById('teamTxt').textContent = String(st.effective_team || 'radiant').toUpperCase();
-        document.getElementById('heroTitle').textContent = st.hero ? st.hero.replace('npc_dota_hero_', '').toUpperCase() : 'Вне матча';
-        document.getElementById('goldTxt').textContent = (st.gold || 0) + 'g';
-        document.getElementById('hpBar').style.width = (st.hp_pct ?? 100) + '%';
-        document.getElementById('mpBar').style.width = (st.mana_pct ?? 100) + '%';
-        document.getElementById('wardAlert').classList.toggle('show', Boolean(st.has_observer || st.has_sentry));
-
-        const sec = Math.max(0, st.clock_time || 0);
-        const toStack = 54 - (sec % 60);
-        document.getElementById('tStack').textContent = (toStack >= 0 ? toStack : toStack + 60) + 's';
-        document.getElementById('tLotus').textContent = fmt(180 - (sec % 180));
-        document.getElementById('tShrine').textContent = fmt(420 - (sec % 420));
-
-        document.getElementById('gsiInfo').textContent = st.gsi_installed
-          ? (st.connected ? 'Подключено к Dota 2' : 'Конфиг установлен. Перезапустите Dota 2 и зайдите в матч/лобби.')
-          : 'Конфиг не найден. Положите .cfg в папку Dota 2 вручную.';
-
-        if (!miniInitDone && st.miniCfg) {
-          miniInitDone = true;
-          document.getElementById('rSize').value = st.miniCfg.miniSize;
-          document.getElementById('rX').value = st.miniCfg.miniX;
-          document.getElementById('rY').value = st.miniCfg.miniY;
-          document.getElementById('vSize').textContent = st.miniCfg.miniSize;
-          document.getElementById('vX').textContent = st.miniCfg.miniX;
-          document.getElementById('vY').textContent = st.miniCfg.miniY;
-        }
-      } catch (_) {}
-    }
-
-    loadHeroes();
-    setInterval(poll, 700);
-  </script>
-</body>
-</html>
+      const res = await fetch(`https://api.opendota.com
