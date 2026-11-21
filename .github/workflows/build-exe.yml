@@ -1,0 +1,39 @@
+name: Build OPEX-META-Setup.exe
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Скачать файлы репозитория
+        uses: actions/checkout@v4
+
+      - name: Установить Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Установить зависимости
+        run: npm install
+
+      - name: Собрать OPEX-META-Setup.exe
+        run: npm run dist
+
+      - name: Опубликовать .exe в GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0' }}
+          name: OPEX META Companion
+          files: dist/OPEX-META-Setup.exe
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
