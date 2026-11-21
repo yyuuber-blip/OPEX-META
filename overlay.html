@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>OPEX META Overlay</title>
+  <style>
+    :root { --hud-alpha: 0.80; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #eff1f5;
+      background: transparent;
+      user-select: none;
+    }
+    .hud {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      padding: 15px;
+      border-radius: 22px;
+      background: rgba(14, 16, 20, var(--hud-alpha));
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border: 1px solid rgba(239, 241, 245, 0.16);
+      box-shadow: 0 24px 56px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+      overflow: hidden;
+    }
+    .drag-bar {
+      -webkit-app-region: drag;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(239, 241, 245, 0.09);
+    }
+    .logo-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #64748b; box-shadow: 0 0 8px rgba(100,116,139,0.5);
+      transition: all 0.3s ease;
+    }
+    .live-dot.on {
+      background: #4ade80;
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.85);
+      animation: pulseDot 1.6s infinite;
+    }
+    @keyframes pulseDot { 0%,100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+
+    .status-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px; color: #969ca9;
+      padding: 3px 8px; border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(239, 241, 245, 0.1);
+    }
+
+    /* Живой статус-бар героя */
+    .hero-strip {
+      display: grid; grid-template-columns: 1fr auto; gap: 10px;
+      padding: 10px 12px; border-radius: 13px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(239, 241, 245, 0.09);
+    }
+    .bars { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+    .bar-bg { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .bar-hp { height: 100%; background: linear-gradient(90deg, #22c55e, #86efac); transition: width 0.3s ease; }
+    .bar-mp { height: 100%; background: linear-gradient(90deg, #38bdf8, #93c5fd); transition: width 0.3s ease; }
+
+    .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .btn {
+      background: rgba(30, 34, 42, 0.82);
+      color: #eff1f5;
+      border: 1px solid rgba(239, 241, 245, 0.11);
+      border-radius: 11px;
+      padding: 9px 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 4px 4px 10px rgba(0,0,0,0.45), -2px -2px 6px rgba(255,255,255,0.03);
+      transition: all 0.2s ease;
+    }
+    .btn:hover { border-color: rgba(239, 241, 245, 0.28); transform: translateY(-1px); }
+    .btn.active {
+      background: rgba(239, 241, 245, 0.15);
+      border-color: rgba(239, 241, 245, 0.38);
+      box-shadow: inset 3px 3px 8px rgba(0,0,0,0.5);
+    }
+
+    .panel { display: none; flex: 1; overflow-y: auto; flex-direction: column; gap: 10px; padding-right: 2px; }
+    .panel.active { display: flex; animation: fadeIn 0.25s ease; }
+    .panel::-webkit-scrollbar { width: 4px; }
+    .panel::-webkit-scrollbar-thumb { background: rgba(239,241,245,0.18); border-radius: 999px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    .card {
+      padding: 11px 13px;
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(239, 241, 245, 0.09);
+      font-size: 12.5px;
+      line-height: 1.48;
+    }
+    .muted { color: #969ca9; font-size: 11.5px; }
+
+    .map-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(239, 241, 245, 0.2);
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+      background: #0d1117;
+    }
+    .map-wrap canvas { width: 100%; height: 100%; display: block; }
+
+    .toggles { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      font-size: 11px; padding: 5px 9px; border-radius: 999px;
+      border: 1px solid rgba(239,241,245,0.14);
+      background: rgba(255,255,255,0.03); color: #969ca9; cursor: pointer;
+    }
+    .chip.on { color: #eff1f5; border-color: rgba(239,241,245,0.36); background: rgba(239,241,245,0.12); }
+
+    select {
+      width: 100%; padding: 8px 10px; border-radius: 10px;
+      background: rgba(12, 14, 18, 0.85); color: #eff1f5;
+      border: 1px solid rgba(239, 241, 245, 0.16); outline: none; font-size: 12px;
+    }
+    .ward-alert {
+      padding: 8px 11px; border-radius: 10px;
+      background: linear-gradient(90deg, rgba(250, 204, 21, 0.18), rgba(250, 204, 21, 0.06));
+      border: 1px solid rgba(250, 204, 21, 0.5);
+      color: #fde68a; font-size: 12px; display: none;
+    }
+    .ward-alert.show { display: block; }
+
+    .counter-item {
+      display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 10px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(239, 241, 245, 0.09);
+      font-size: 12px;
+    }
+    .counter-item img { width: 40px; height: 23px; border-radius: 5px; object-fit: cover; }
+    .wr-track { height: 4px; background: rgba(255,255,255,0.08); border-radius: 999px; margin-top: 4px; overflow: hidden; }
+    .wr-fill { height: 100%; background: linear-gradient(90deg, #94a3b8, #eff1f5); }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div class="drag-bar">
+      <div class="logo-wrap">
+        <span class="live-dot" id="liveDot"></span>
+        <span>OPEX META HUD</span>
+      </div>
+      <span id="gsiStatus" class="status-pill">Ожидание Dota 2</span>
+    </div>
+
+    <!-- Статус героя в реальном времени -->
+    <div class="hero-strip">
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px;">
+          <strong id="heroLiveName">Герой не выбран</strong>
+          <span id="goldVal" style="color:#fde68a; font-family:monospace;">0g</span>
+        </div>
+        <div class="bars">
+          <div class="bar-bg"><div class="bar-hp" id="hpBar" style="width:100%"></div></div>
+          <div class="bar-bg"><div class="bar-mp" id="mpBar" style="width:100%"></div></div>
+        </div>
+      </div>
+      <div style="text-align:right; font-family:monospace;">
+        <div id="clockVal" style="font-size:16px; font-weight:600;">00:00</div>
+        <div id="sideVal" class="muted">RADIANT</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="btn active" onclick="openTab('mapTab', this)">Карта</button>
+      <button class="btn" onclick="openTab('draftTab', this)">Контрпики</button>
+      <button class="btn" onclick="openTab('timersTab', this)">Тайминги</button>
+    </div>
+
+    <!-- КАРТА / ВАРДЫ / ФАРМ -->
+    <div id="mapTab" class="panel active">
+      <div style="display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center;">
+        <select id="myRoleSelect" onchange="syncRole()">
+          <option value="Carry">Позиция 1: Керри (Фарм)</option>
+          <option value="Nuker">Позиция 2: Мид (Ротации)</option>
+          <option value="Initiator">Позиция 3: Оффлейн</option>
+          <option value="Support">Позиция 4/5: Саппорт (Варды)</option>
+        </select>
+        <div class="toggles">
+          <button class="chip on" id="togWards" onclick="toggleLayer('wards', this)">Варды</button>
+          <button class="chip on" id="togFarm" onclick="toggleLayer('farm', this)">Фарм</button>
+          <button class="chip on" id="togPath" onclick="toggleLayer('path', this)">Путь</button>
+        </div>
+      </div>
+
+      <div id="wardAlert" class="ward-alert">Вард в инвентаре: ставь в пульсирующие точки на миникарте.</div>
+
+      <div class="map-wrap">
+        <canvas id="bigMap" width="400" height="400"></canvas>
+      </div>
+
+      <div class="card">
+        <div id="adviceText" class="muted">Подсказка обновится по таймеру матча.</div>
+      </div>
+    </div>
+
+    <!-- КОНТРПИКИ -->
+    <div id="draftTab" class="panel">
+      <div class="card">
+        <div style="margin-bottom:6px;"><strong>Вражеский герой:</strong></div>
+        <select id="enemySelect"></select>
+        <div style="margin:8px 0 6px;"><strong>Твоя роль:</strong></div>
+        <select id="laneSelect">
+          <option value="all">Любая роль</option>
+          <option value="Carry">Керри (1)</option>
+          <option value="Nuker">Мид (2)</option>
+          <option value="Initiator">Оффлейн (3)</option>
+          <option value="Support">Саппорт (4 / 5)</option>
+        </select>
+        <button class="btn" style="width:100%; margin-top:9px;" onclick="findCounters()">Подобрать контрпик</button>
+      </div>
+      <div id="countersOut" style="display:flex; flex-direction:column; gap:7px;"></div>
+    </div>
+
+    <!-- ТАЙМИНГИ И ПРОЗРАЧНОСТЬ -->
+    <div id="timersTab" class="panel">
+      <div class="card" id="nextEvents">Ожидание таймера игры...</div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span>Прозрачность HUD</span>
+          <span id="hudAlphaTxt" class="muted">80%</span>
+        </div>
+        <input type="range" min="35" max="95" value="80" style="width:100%; accent-color:#eff1f5;" oninput="setHudAlpha(this.value)" />
+      </div>
+      <div class="card muted">
+        <div><strong>Ctrl + Shift + O</strong> : скрыть / показать оверлей</div>
+        <div style="margin-top:5px;"><strong>Ctrl + Shift + M</strong> : вкл / выкл слой на миникарте</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CDN = 'https://cdn.cloudflare.steamstatic.com';
+    let heroes = [], heroMap = {};
+    let state = { clock_time: 0, team: 'radiant', role: 'Carry', has_observer: false, has_sentry: false, hp_pct: 100, mana_pct: 100, gold: 0 };
+    let layers = { wards: true, farm: true, path: true };
+    let dashOffset = 0;
+
+    function openTab(id, btn) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.querySelectorAll('.tabs .btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function toggleLayer(key, btn) {
+      layers[key] = !layers[key];
+      btn.classList.toggle('on', layers[key]);
+    }
+
+    function setHudAlpha(v) {
+      document.documentElement.style.setProperty('--hud-alpha', v / 100);
+      document.getElementById('hudAlphaTxt').textContent = v + '%';
+    }
+
+    function syncRole() {
+      const role = document.getElementById('myRoleSelect').value;
+      state.role = role;
+      fetch('http://127.0.0.1:4000/role', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role })
+      }).catch(() => {});
+    }
+
+    function getTacticalPlan(st) {
+      const isRad = String(st.team).toLowerCase() !== 'dire';
+      const sec = st.clock_time || 0;
+      const role = st.role || 'Carry';
+
+      if (sec < 480) {
+        return {
+          wards: isRad
+            ? [{ x: 0.39, y: 0.38, type: 'obs', label: 'Мид река' }, { x: 0.57, y: 0.54, type: 'obs', label: 'Нижний холм' }, { x: 0.77, y: 0.84, type: 'sen', label: 'Блок пула' }]
+            : [{ x: 0.57, y: 0.54, type: 'obs', label: 'Мид река' }, { x: 0.39, y: 0.38, type: 'obs', label: 'Верхний холм' }, { x: 0.22, y: 0.14, type: 'sen', label: 'Блок пула' }],
+          farms: isRad ? [{ x: 0.54, y: 0.78, r: 0.08 }, { x: 0.68, y: 0.85, r: 0.07 }] : [{ x: 0.44, y: 0.19, r: 0.08 }, { x: 0.30, y: 0.11, r: 0.07 }],
+          path: role === 'Carry'
+            ? (isRad ? [[0.80, 0.89], [0.68, 0.85], [0.54, 0.78], [0.44, 0.84]] : [[0.18, 0.08], [0.30, 0.11], [0.44, 0.19], [0.52, 0.12]])
+            : (isRad ? [[0.47, 0.50], [0.39, 0.38], [0.16, 0.30], [0.05, 0.20]] : [[0.52, 0.48], [0.57, 0.54], [0.85, 0.64], [0.95, 0.76]]),
+          text: 'Ранняя игра: контроль рун и Лотоса (03:00 / 06:00), блок пула врага через Sentry и стаки на :54 секунде.'
+        };
+      } else if (sec < 1320) {
+        return {
+          wards: isRad
+            ? [{ x: 0.44, y: 0.16, type: 'obs', label: 'Лес Dire' }, { x: 0.67, y: 0.51, type: 'obs', label: 'Смотритель Dire' }, { x: 0.28, y: 0.46, type: 'sen', label: 'Девард' }]
+            : [{ x: 0.54, y: 0.78, type: 'obs', label: 'Лес Radiant' }, { x: 0.28, y: 0.46, type: 'obs', label: 'Смотритель Rad' }, { x: 0.67, y: 0.51, type: 'sen', label: 'Девард' }],
+          farms: isRad ? [{ x: 0.23, y: 0.50, r: 0.095 }, { x: 0.52, y: 0.74, r: 0.085 }] : [{ x: 0.73, y: 0.48, r: 0.095 }, { x: 0.45, y: 0.22, r: 0.085 }],
+          path: role === 'Carry'
+            ? (isRad ? [[0.11, 0.36], [0.23, 0.50], [0.34, 0.62], [0.52, 0.74], [0.23, 0.50]] : [[0.89, 0.60], [0.73, 0.48], [0.62, 0.34], [0.45, 0.22], [0.73, 0.48]])
+            : (isRad ? [[0.39, 0.38], [0.30, 0.29], [0.44, 0.16], [0.64, 0.28]] : [[0.57, 0.54], [0.68, 0.65], [0.54, 0.78], [0.34, 0.66]]),
+          text: 'Мидгейм: керри фармит свой треугольник и лес по кругу. Саппорты ставят глубокий вижен на холмы врага и выходят на Рошана / Торментора.'
+        };
+      }
+      return {
+        wards: isRad
+          ? [{ x: 0.67, y: 0.30, type: 'obs', label: 'База Dire' }, { x: 0.30, y: 0.29, type: 'obs', label: 'Рошан' }, { x: 0.67, y: 0.51, type: 'sen', label: 'Смок-девард' }]
+          : [{ x: 0.31, y: 0.64, type: 'obs', label: 'База Radiant' }, { x: 0.68, y: 0.65, type: 'obs', label: 'Рошан' }, { x: 0.28, y: 0.46, type: 'sen', label: 'Смок-девард' }],
+        farms: isRad ? [{ x: 0.46, y: 0.24, r: 0.10 }] : [{ x: 0.54, y: 0.74, r: 0.10 }],
+        path: isRad ? [[0.30, 0.29], [0.46, 0.24], [0.67, 0.30]] : [[0.68, 0.65], [0.54, 0.74], [0.31, 0.64]],
+        text: 'Лейтгейм: играйте от Аегиса и смока, ставьте вижен на выходы с вражеской базы.'
+      };
+    }
+
+    function drawBaseTerrain(ctx, w, h) {
+      ctx.fillStyle = '#12161d';
+      ctx.fillRect(0, 0, w, h);
+
+      // Река и затопленные зоны (как на твоей миникарте)
+      ctx.strokeStyle = 'rgba(56, 139, 196, 0.24)';
+      ctx.lineWidth = 32;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(w * 0.24, h * 0.27);
+      ctx.lineTo(w * 0.72, h * 0.68);
+      ctx.stroke();
+
+      // Возвышенности треугольников
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.beginPath(); ctx.ellipse(w * 0.24, h * 0.50, w * 0.10, h * 0.13, 0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w * 0.72, h * 0.49, w * 0.10, h * 0.13, 0.2, 0, Math.PI * 2); ctx.fill();
+
+      // Базы Radiant (низ-лево) и Dire (верх-право)
+      ctx.fillStyle = 'rgba(34, 197, 94, 0.16)';
+      ctx.fillRect(0, h * 0.70, w * 0.27, h * 0.30);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.16)';
+      ctx.fillRect(w * 0.72, 0, w * 0.28, h * 0.29);
+
+      // Логова Рошана (верхнее и нижнее)
+      ctx.strokeStyle = 'rgba(248, 113, 113, 0.55)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(w * 0.30, h * 0.29, 9, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(w * 0.68, h * 0.65, 9, 0, Math.PI * 2); ctx.stroke();
+
+      // Смотрители (зелёный и красный)
+      ctx.fillStyle = 'rgba(74, 222, 128, 0.65)';
+      ctx.beginPath(); ctx.arc(w * 0.24, h * 0.49, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(248, 113, 113, 0.65)';
+      ctx.beginPath(); ctx.arc(w * 0.71, h * 0.49, 4.5, 0, Math.PI * 2); ctx.fill();
+
+      // Башни
+      const radTowers = [[0.10,0.33],[0.10,0.52],[0.31,0.64],[0.48,0.89],[0.80,0.89]];
+      const direTowers = [[0.17,0.06],[0.49,0.06],[0.67,0.30],[0.90,0.43],[0.90,0.61]];
+      ctx.fillStyle = 'rgba(74, 222, 128, 0.55)';
+      radTowers.forEach(([x,y]) => ctx.fillRect(x*w-3, y*h-3, 6, 6));
+      ctx.fillStyle = 'rgba(248, 113, 113, 0.55)';
+      direTowers.forEach(([x,y]) => ctx.fillRect(x*w-3, y*h-3, 6, 6));
+    }
+
+    function drawMap() {
+      const c = document.getElementById('bigMap');
+      const ctx = c.getContext('2d');
+      const w = c.width, h = c.height;
+      drawBaseTerrain(ctx, w, h);
+
+      const plan = getTacticalPlan(state);
+      document.getElementById('adviceText').textContent = plan.text;
+      const pulse = (Math.sin(Date.now() / 220) + 1) * 0.5;
+
+      if (layers.farm) {
+        plan.farms.forEach(z => {
+          const cx = z.x * w, cy = z.y * h, r = z.r * w;
+          const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, r);
+          g.addColorStop(0, 'rgba(74, 222, 128, 0.28)');
+          g.addColorStop(1, 'rgba(74, 222, 128, 0.02)');
+          ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+          ctx.strokeStyle = 'rgba(74, 222, 128, 0.65)'; ctx.lineWidth = 1.5; ctx.stroke();
+        });
+      }
+
+      if (layers.path && plan.path.length > 1) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(239, 241, 245, 0.55)'; ctx.shadowBlur = 8;
+        ctx.strokeStyle = 'rgba(239, 241, 245, 0.9)'; ctx.lineWidth = 2.4;
+        ctx.setLineDash([8, 6]); ctx.lineDashOffset = -dashOffset;
+        ctx.beginPath();
+        plan.path.forEach(([px, py], i) => i === 0 ? ctx.moveTo(px * w, py * h) : ctx.lineTo(px * w, py * h));
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (layers.wards) {
+        plan.wards.forEach(wd => {
+          const x = wd.x * w, y = wd.y * h;
+          const isObs = wd.type === 'obs';
+          const active = isObs ? state.has_observer : state.has_sentry;
+          const color = isObs ? '#facc15' : '#38bdf8';
+
+          ctx.save();
+          ctx.shadowColor = color; ctx.shadowBlur = active ? 16 : 8;
+          ctx.beginPath();
+          ctx.arc(x, y, active ? 10 + pulse * 8 : 7 + pulse * 2, 0, Math.PI * 2);
+          ctx.strokeStyle = color; ctx.lineWidth = active ? 2.4 : 1.5; ctx.stroke();
+          ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+          ctx.restore();
+
+          ctx.fillStyle = '#eff1f5'; ctx.font = '10.5px Inter, sans-serif';
+          ctx.fillText(wd.label, x + 10, y + 3);
+        });
+      }
+
+      dashOffset = (dashOffset + 0.5) % 28;
+      requestAnimationFrame(drawMap);
+    }
+
+    async function loadHeroes() {
+      const res = await fetch('https://api.opendota.com/api/constants/heroes');
+      const data = await res.json();
+      heroes = Object.values(data).sort((a, b) => a.localized_name.localeCompare(b.localized_name));
+      heroes.forEach(h => (heroMap[h.id] = h));
+      document.getElementById('enemySelect').innerHTML = heroes.map(h => `<option value="${h.id}">${h.localized_name}</option>`).join('');
+    }
+
+    async function findCounters() {
+      const enemyId = Number(document.getElementById('enemySelect').value);
+      const role = document.getElementById('laneSelect').value;
+      const out = document.getElementById('countersOut');
+      out.innerHTML = '<div class="muted">Считаем лучшие контрпики...</div>';
+      const res = await fetch(`https://api.opendota.com/api/heroes/${enemyId}/matchups`);
+      const list = await res.json();
+      const best = list
+        .filter(m => m.games_played >= 40 && heroMap[m.hero_id])
+        .filter(m => role === 'all' || (heroMap[m.hero_id].roles || []).includes(role))
+        .map(m => ({ hero: heroMap[m.hero_id], wr: (1 - m.wins / m.games_played) * 100 }))
+        .sort((a, b) => b.wr - a.wr).slice(0, 7);
+
+      out.innerHTML = best.map(i => {
+        const short = i.hero.name.replace('npc_dota_hero_', '');
+        return `
+          <div class="counter-item">
+            <img src="${CDN}/apps/dota2/images/dota_react/heroes/${short}.png" alt="" />
+            <div>
+              <div>${i.hero.localized_name}</div>
+              <div class="wr-track"><div class="wr-fill" style="width:${Math.min(100, i.wr).toFixed(1)}%"></div></div>
+            </div>
+            <strong>${i.wr.toFixed(1)}%</strong>
+          </div>`;
+      }).join('') || '<div class="muted">Нет данных</div>';
+    }
+
+    function fmtTime(sec) {
+      const sign = sec < 0 ? '-' : '';
+      const a = Math.abs(sec);
+      return `${sign}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`;
+    }
+
+    async function pollGSI() {
+      try {
+        const res = await fetch('http://127.0.0.1:4000/state');
+        state = await res.json();
+        document.getElementById('liveDot').classList.toggle('on', Boolean(state.connected));
+        document.getElementById('gsiStatus').textContent = state.connected ? 'LIVE • DOTA 2' : 'Ожидание Dota 2';
+        document.getElementById('clockVal').textContent = fmtTime(state.clock_time || 0);
+        document.getElementById('sideVal').textContent = String(state.team || 'RADIANT').toUpperCase();
+        document.getElementById('heroLiveName').textContent = state.hero ? state.hero.replace('npc_dota_hero_', '').toUpperCase() : 'Герой не выбран';
+        document.getElementById('goldVal').textContent = (state.gold || 0) + 'g';
+        document.getElementById('hpBar').style.width = (state.hp_pct ?? 100) + '%';
+        document.getElementById('mpBar').style.width = (state.mana_pct ?? 100) + '%';
+        document.getElementById('wardAlert').classList.toggle('show', Boolean(state.has_observer || state.has_sentry));
+
+        const sec = Math.max(0, state.clock_time || 0);
+        const toStack = 54 - (sec % 60);
+        document.getElementById('nextEvents').innerHTML = `
+          <div><strong>До стака крипов (:54):</strong> ${toStack >= 0 ? toStack : toStack + 60} сек.</div>
+          <div style="margin-top:5px;"><strong>До Лотоса (3 мин):</strong> ${fmtTime(180 - (sec % 180))}</div>
+          <div style="margin-top:5px;"><strong>До Руны Мудрости (7 мин):</strong> ${fmtTime(420 - (sec % 420))}</div>
+        `;
+      } catch (_) {}
+    }
+
+    loadHeroes();
+    drawMap();
+    setInterval(pollGSI, 1000);
+  </script>
+</body>
+</html>

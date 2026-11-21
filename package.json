@@ -1,0 +1,22 @@
+{
+  "name": "opex-meta-companion",
+  "version": "1.0.0",
+  "description": "OPEX META Dota 2 Overlay",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "gg.opexmeta.companion",
+    "productName": "OPEX META Companion",
+    "win": {
+      "target": "nsis",
+      "artifactName": "OPEX-META-Setup.exe"
+    }
+  }
+}

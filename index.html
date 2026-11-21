@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OPEX META // Dota 2 7.42</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #090a0d;
+      --text-milk: #f1f3f7;
+      --text-muted: #989fab;
+      --text-dim: #636976;
+      --border-soft: rgba(241, 243, 247, 0.09);
+      --border-strong: rgba(241, 243, 247, 0.24);
+      --glass-alpha: 0.54;
+      --glass-blur: 20px;
+      --bg-dim: 0.44;
+      --neu-shadow: 8px 8px 18px rgba(0, 0, 0, 0.62), -4px -4px 12px rgba(255, 255, 255, 0.04);
+      --neu-inset: inset 4px 4px 10px rgba(0, 0, 0, 0.58), inset -3px -3px 8px rgba(255, 255, 255, 0.03);
+      --radius-lg: 24px;
+      --radius-md: 15px;
+      --radius-sm: 11px;
+      --transition: 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: transparent;
+      color: var(--text-milk);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Слои фона */
+    .bg-layer {
+      position: fixed; inset: 0; z-index: 0;
+      background-color: var(--bg-base);
+      background-image:
+        radial-gradient(circle at 18% 18%, rgba(255,255,255,0.075), transparent 44%),
+        radial-gradient(circle at 82% 82%, rgba(170,180,198,0.08), transparent 48%),
+        linear-gradient(135deg, #08090c 0%, #15181f 52%, #0c0e12 100%);
+      background-size: cover; background-position: center; background-repeat: no-repeat;
+    }
+
+    /* Плавающие атмосферные ауры */
+    .orb {
+      position: fixed; border-radius: 50%; filter: blur(90px); pointer-events: none; z-index: 1; opacity: 0.32;
+      animation: floatOrb 18s ease-in-out infinite alternate;
+    }
+    .orb-1 { width: 420px; height: 420px; top: -120px; left: -80px; background: radial-gradient(circle, rgba(226,232,240,0.28), transparent 70%); }
+    .orb-2 { width: 480px; height: 480px; bottom: -160px; right: -100px; background: radial-gradient(circle, rgba(148,163,184,0.24), transparent 70%); animation-delay: -9s; }
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(65px, 45px) scale(1.16); }
+    }
+
+    .bg-video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none; pointer-events: none; }
+    .bg-video.active { display: block; }
+    .bg-particles { position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0.65; }
+    .bg-overlay { position: fixed; inset: 0; z-index: 3; background: rgba(9, 10, 14, var(--bg-dim)); pointer-events: none; }
+
+    .app-shell {
+      position: relative; z-index: 10;
+      display: grid; grid-template-columns: 316px 1fr;
+      min-height: 100vh; gap: 22px; padding: 22px; max-width: 1740px; margin: 0 auto;
+    }
+
+    /* Стеклянные панели с подсветкой за курсором */
+    .glass {
+      position: relative;
+      background: rgba(19, 21, 26, var(--glass-alpha));
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 24px 56px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+      overflow: hidden;
+    }
+    .glass::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: radial-gradient(360px circle at var(--mx, -200px) var(--my, -200px), rgba(241, 243, 247, 0.085), transparent 60%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .glass:hover::after { opacity: 1; }
+    .glass:hover { border-color: rgba(241, 243, 247, 0.18); }
+
+    .neu-btn {
+      position: relative; overflow: hidden;
+      background: rgba(29, 32, 40, 0.78);
+      color: var(--text-milk);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--neu-shadow);
+      padding: 10px 15px; font-size: 13px; font-weight: 500;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      text-decoration: none; transition: all var(--transition);
+    }
+    .neu-btn:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+      background: rgba(44, 48, 58, 0.9);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.52), 0 0 18px rgba(241, 243, 247, 0.08);
+    }
+    .neu-btn:active, .neu-btn.active { box-shadow: var(--neu-inset); transform: translateY(0); border-color: rgba(241, 243, 247, 0.34); }
+
+    /* Премиальный бегущий блик на главной кнопке */
+    .neu-btn.primary {
+      background: linear-gradient(135deg, rgba(241,243,247,0.18), rgba(148,163,184,0.09));
+      border-color: rgba(241, 243, 247, 0.36);
+    }
+    .neu-btn.primary::before {
+      content: "";
+      position: absolute; top: 0; left: -120%; width: 70%; height: 100%;
+      background: linear-gradient(110deg, transparent, rgba(255,255,255,0.24), transparent);
+      transform: skewX(-20deg);
+      animation: shimmer 3.6s infinite;
+    }
+    @keyframes shimmer { 0% { left: -120%; } 45%,100% { left: 160%; } }
+
+    .neu-input, .neu-select {
+      width: 100%; background: rgba(12, 14, 18, 0.74);
+      border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+      box-shadow: var(--neu-inset); color: var(--text-milk);
+      padding: 10px 13px; font-size: 13px; font-family: inherit; outline: none;
+      transition: border-color var(--transition);
+    }
+    .neu-input:focus, .neu-select:focus { border-color: var(--border-strong); }
+    .neu-select option { background: #14161a; color: #f1f3f7; }
+
+    .sidebar { position: sticky; top: 22px; height: calc(100vh - 44px); display: flex; flex-direction: column; padding: 18px; gap: 12px; }
+    .brand { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--border-soft); }
+    .brand-title {
+      font-size: 16px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff, #94a3b8, #ffffff);
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: textShine 6s linear infinite;
+    }
+    @keyframes textShine { to { background-position: 200% center; } }
+    .brand-sub { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+
+    .nav-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+    .nav-tabs .neu-btn { padding: 8px 2px; font-size: 11px; }
+
+    .attr-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      font-size: 11px; padding: 5px 10px; border-radius: 999px;
+      border: 1px solid var(--border-soft); background: rgba(255,255,255,0.03);
+      color: var(--text-muted); cursor: pointer; transition: all var(--transition);
+    }
+    .chip:hover, .chip.active { color: var(--text-milk); border-color: var(--border-strong); background: rgba(241,243,247,0.13); }
+
+    .hero-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+    .hero-list::-webkit-scrollbar, .chat-messages::-webkit-scrollbar { width: 5px; }
+    .hero-list::-webkit-scrollbar-thumb, .chat-messages::-webkit-scrollbar-thumb { background: rgba(241,243,247,0.18); border-radius: 999px; }
+
+    .hero-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--radius-sm);
+      border: 1px solid transparent; background: rgba(255,255,255,0.015); cursor: pointer; transition: all var(--transition);
+    }
+    .hero-item:hover { background: rgba(255,255,255,0.06); border-color: var(--border-soft); transform: translateX(4px); }
+    .hero-item.active { background: rgba(241,243,247,0.10); border-color: var(--border-strong); box-shadow: var(--neu-inset); }
+    .hero-thumb { width: 48px; height: 27px; border-radius: 6px; object-fit: cover; background: #1a1c22; transition: transform 0.25s ease; }
+    .hero-item:hover .hero-thumb { transform: scale(1.06); }
+    .hero-item-name { font-size: 13px; font-weight: 500; }
+    .hero-item-meta { font-size: 10.5px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+    .main-area { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+    .view-section { display: none; flex-direction: column; gap: 22px; animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+    .view-section.active { display: flex; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    .hero-header { display: grid; grid-template-columns: 300px 1fr; gap: 26px; padding: 26px; align-items: center; }
+    .portrait-wrap {
+      position: relative; border-radius: var(--radius-md); overflow: hidden;
+      border: 1px solid var(--border-strong); aspect-ratio: 16/9; background: #111317;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .portrait-wrap:hover { transform: scale(1.03) rotateX(2deg) rotateY(-2deg); }
+    .portrait-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.6s ease; }
+    .portrait-wrap:hover img { transform: scale(1.07); }
+    .portrait-badge { position: absolute; bottom: 10px; left: 10px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-family: 'JetBrains Mono', monospace; background: rgba(10,11,14,0.82); border: 1px solid var(--border-strong); backdrop-filter: blur(8px); }
+    .hero-title-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .hero-name { font-size: 36px; font-weight: 500; letter-spacing: -0.03em; }
+    .hero-roles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .role-tag { font-size: 11px; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--border-soft); color: var(--text-muted); background: rgba(255,255,255,0.03); }
+    .external-links { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    .two-col { display: grid; grid-template-columns: 1.08fr 1fr; gap: 22px; }
+    .panel { padding: 24px; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+    .panel-title { font-size: 12.5px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--text-muted); }
+    .status-line { font-size: 12px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+    .stat-box { padding: 12px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); transition: border-color 0.25s; }
+    .stat-box:hover { border-color: var(--border-strong); }
+    .stat-label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+    .stat-val { font-family: 'JetBrains Mono', monospace; font-size: 15px; }
+
+    .random-items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 11px; margin-top: 12px; }
+    .item-card {
+      padding: 11px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border-soft); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+      transition: all var(--transition); animation: popIn 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(0.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .item-card:hover { border-color: var(--border-strong); transform: translateY(-4px) scale(1.03); box-shadow: 0 12px 24px rgba(0,0,0,0.45); }
+    .item-card img { width: 56px; height: 42px; border-radius: 7px; object-fit: cover; border: 1px solid var(--border-strong); background: #121418; }
+    .item-card-name { font-size: 11.5px; line-height: 1.3; }
+    .item-card-cost { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim); }
+
+    .counters-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .counter-col-title { font-size: 11.5px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; }
+    .counter-list { display: flex; flex-direction: column; gap: 8px; }
+    .counter-row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.025); border: 1px solid var(--border-soft); cursor: pointer; transition: all var(--transition); }
+    .counter-row:hover { border-color: var(--border-strong); transform: translateX(4px); background: rgba(241,243,247,0.06); }
+    .counter-row img { width: 44px; height: 25px; border-radius: 5px; object-fit: cover; }
+    .wr-bar-wrap { height: 4px; background: rgba(255,255,255,0.08); border-radius: 999px; margin-top: 5px; overflow: hidden; }
+    .wr-bar { height: 100%; background: linear-gradient(90deg, rgba(241,243,247,0.4), rgba(241,243,247,0.95)); transition: width 0.6s ease; }
+    .counter-wr { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+    .talent-tree { display: flex; flex-direction: column; gap: 10px; }
+    .talent-row { display: grid; grid-template-columns: 1fr 54px 1fr; gap: 10px; }
+    .talent-cell { padding: 12px 14px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.025); border: 1px solid var(--border-soft); font-size: 13px; display: flex; align-items: center; transition: all var(--transition); }
+    .talent-cell:hover { border-color: var(--border-strong); background: rgba(241,243,247,0.06); }
+    .talent-cell.left { justify-content: flex-end; text-align: right; }
+    .talent-lvl { display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); background: rgba(14,15,18,0.82); border: 1px solid var(--border-strong); font-family: 'JetBrains Mono', monospace; font-size: 13px; box-shadow: var(--neu-inset); }
+
+    .spells-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 15px; }
+    .spell-card { padding: 17px; border-radius: var(--radius-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: all var(--transition); }
+    .spell-card:hover { border-color: var(--border-strong); background: rgba(241,243,247,0.075); transform: translateY(-4px); box-shadow: 0 18px 36px rgba(0, 0, 0, 0.48); }
+    .spell-card.aghs { border-color: rgba(241,243,247,0.28); background: linear-gradient(145deg, rgba(241,243,247,0.085), rgba(20,22,26,0.44)); }
+    .spell-top { display: flex; align-items: center; gap: 12px; }
+    .spell-icon { width: 52px; height: 52px; border-radius: 11px; object-fit: cover; border: 1px solid var(--border-strong); background: #14161a; }
+    .spell-name { font-size: 15px; font-weight: 500; }
+    .spell-tag { display: inline-block; font-size: 10px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border-strong); margin-top: 3px; }
+    .spell-desc { font-size: 13px; line-height: 1.55; color: var(--text-muted); }
+    .spell-meta { display: flex; gap: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); padding-top: 8px; border-top: 1px solid var(--border-soft); }
+
+    .spell-tooltip {
+      position: fixed; z-index: 9999; width: 350px; max-width: calc(100vw - 24px); padding: 16px; border-radius: 18px;
+      background: rgba(14, 16, 20, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(241, 243, 247, 0.28);
+      box-shadow: 0 28px 64px rgba(0, 0, 0, 0.78); pointer-events: none; opacity: 0; transform: translateY(10px) scale(0.97); transition: opacity 0.16s ease, transform 0.16s ease;
+    }
+    .spell-tooltip.visible { opacity: 1; transform: translateY(0) scale(1); }
+    .tooltip-video { width: 100%; aspect-ratio: 16/9; border-radius: 11px; object-fit: cover; margin-bottom: 10px; display: none; background: #0d0e11; }
+    .tooltip-video.ready { display: block; }
+    .tooltip-attrs { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-soft); font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+    .build-table, .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .build-table th, .build-table td, .compare-table th, .compare-table td { text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--border-soft); }
+    .build-table th, .compare-table th { font-size: 11px; text-transform: uppercase; color: var(--text-dim); }
+    .compare-table td.win { color: var(--text-milk); font-weight: 600; }
+    .compare-table td.lose { color: var(--text-dim); }
+    .item-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .item-pill { padding: 4px 10px; border-radius: 8px; background: rgba(255,255,255,0.045); border: 1px solid var(--border-soft); font-size: 12px; }
+
+    .compare-selectors { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; }
+    .compare-hero-card { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding: 12px; border-radius: var(--radius-md); background: rgba(255,255,255,0.025); border: 1px solid var(--border-soft); }
+    .compare-hero-card img { width: 96px; height: 54px; border-radius: 8px; object-fit: cover; }
+
+    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 20px; }
+    .control-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .control-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
+    input[type="range"] { width: 100%; accent-color: #e2e6ee; cursor: pointer; }
+    .preset-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .preset-card { height: 64px; border-radius: var(--radius-sm); border: 1px solid var(--border-soft); cursor: pointer; display: flex; align-items: flex-end; padding: 8px; font-size: 11px; transition: all var(--transition); }
+    .preset-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+
+    .chat-box { display: flex; flex-direction: column; height: calc(100vh - 110px); min-height: 520px; padding: 20px; gap: 14px; }
+    .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 6px; }
+    .msg { max-width: 78%; padding: 12px 15px; border-radius: var(--radius-md); background: rgba(255,255,255,0.035); border: 1px solid var(--border-soft); align-self: flex-start; }
+    .msg.mine { align-self: flex-end; background: rgba(241,243,247,0.11); border-color: var(--border-strong); }
+    .msg-head { display: flex; justify-content: space-between; gap: 14px; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim); margin-bottom: 5px; }
+    .chat-form { display: flex; gap: 10px; }
+
+    .download-hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: center; }
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 16px 0; font-size: 13.5px; color: var(--text-muted); }
+    .feature-list li { padding-left: 14px; border-left: 2px solid var(--border-strong); }
+
+    @media (max-width: 1080px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; max-height: 440px; }
+      .hero-header, .two-col, .compare-selectors, .counters-split, .download-hero { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-layer" id="bgLayer"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <video class="bg-video" id="bgVideo" autoplay loop muted playsinline></video>
+  <canvas class="bg-particles" id="bgParticles"></canvas>
+  <div class="bg-overlay"></div>
+
+  <div class="spell-tooltip" id="spellTooltip">
+    <video class="tooltip-video" id="tooltipVideo" autoplay loop muted playsinline></video>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+      <img id="tooltipIcon" class="spell-icon" style="width:38px; height:38px;" src="" alt="" />
+      <div>
+        <div id="tooltipTitle" style="font-size:14px; font-weight:600;"></div>
+        <div id="tooltipSub" class="status-line"></div>
+      </div>
+    </div>
+    <div id="tooltipDesc" class="spell-desc" style="font-size:12.5px;"></div>
+    <div id="tooltipAttrs" class="tooltip-attrs"></div>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar glass">
+      <div class="brand">
+        <div>
+          <div class="brand-title">OPEX META</div>
+          <div class="brand-sub" id="heroCountStatus">Patch 7.42 • Загрузка...</div>
+        </div>
+        <button class="neu-btn" id="randomHeroBtn" style="padding:7px 10px; font-size:11px;">Random</button>
+      </div>
+
+      <div class="nav-tabs">
+        <button class="neu-btn active" data-view="heroesView">Герои</button>
+        <button class="neu-btn" data-view="compareView">Сравн.</button>
+        <button class="neu-btn" data-view="downloadView">App</button>
+        <button class="neu-btn" data-view="chatView">Чат</button>
+        <button class="neu-btn" data-view="settingsView">Фон</button>
+      </div>
+
+      <input class="neu-input" id="heroSearch" type="text" placeholder="Поиск героя..." />
+
+      <div class="attr-filters" id="attrFilters">
+        <button class="chip active" data-attr="all">Все</button>
+        <button class="chip" data-attr="str">Сила</button>
+        <button class="chip" data-attr="agi">Ловкость</button>
+        <button class="chip" data-attr="int">Интеллект</button>
+        <button class="chip" data-attr="all_attr">Универсал</button>
+      </div>
+
+      <div class="hero-list" id="heroList"></div>
+    </aside>
+
+    <main class="main-area">
+      <!-- ГЕРОИ -->
+      <section class="view-section active" id="heroesView">
+        <div class="glass hero-header">
+          <div class="portrait-wrap">
+            <img id="heroPortrait" src="" alt="Портрет героя" />
+            <div class="portrait-badge" id="heroAttrBadge">UNIVERSAL</div>
+          </div>
+          <div>
+            <div class="hero-title-row">
+              <h1 class="hero-name" id="heroName">Techies</h1>
+              <span class="status-line" id="heroAttackType">Patch 7.42</span>
+            </div>
+            <div class="hero-roles" id="heroRoles"></div>
+            <div class="external-links">
+              <button class="neu-btn primary" onclick="switchView('downloadView')">Скачать OPEX Companion (.exe)</button>
+              <a class="neu-btn" id="dotabuffLink" target="_blank" rel="noopener">Dotabuff</a>
+              <a class="neu-btn" id="d2ptLink" target="_blank" rel="noopener">Dota2ProTracker</a>
+              <button class="neu-btn" id="quickCompareBtn">Сравнить</button>
+              <button class="neu-btn" id="rollBuildTopBtn">Рандом-сборка 7.42</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="glass panel">
+            <div class="panel-header">
+              <div class="panel-title">Профиль характеристик</div>
+              <span class="status-line">Базовые статы и прирост</span>
+            </div>
+            <canvas id="statsChart" height="175" style="width:100%; display:block;"></canvas>
+            <div class="stat-grid" id="statGrid"></div>
+          </div>
+
+          <div class="glass panel">
+            <div class="panel-header">
+              <div class="panel-title">Рекомендуемый закуп (7.42)</div>
+              <span class="status-line">Без удалённых предметов</span>
+            </div>
+            <table class="build-table">
+              <thead><tr><th>Стадия</th><th>Предметы</th></tr></thead>
+              <tbody id="buildTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="glass panel">
+            <div class="panel-header">
+              <div class="panel-title">Рандом-сборка (патч 7.42)</div>
+              <button class="neu-btn" id="rerollBuildBtn" style="padding:7px 12px; font-size:12px;">Сгенерировать</button>
+            </div>
+            <div class="status-line" id="randomBuildNote">Ботинок + 5 актуальных предметов</div>
+            <div class="random-items-grid" id="randomBuildGrid"></div>
+          </div>
+
+          <div class="glass panel">
+            <div class="panel-header">
+              <div class="panel-title">Контрпики и матчапы</div>
+              <span class="status-line" id="countersStatus">OpenDota Live</span>
+            </div>
+            <div class="counters-split">
+              <div>
+                <div class="counter-col-title">Контрят этого героя</div>
+                <div class="counter-list" id="worstMatchups"></div>
+              </div>
+              <div>
+                <div class="counter-col-title">Хорош против</div>
+                <div class="counter-list" id="bestMatchups"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass panel">
+          <div class="panel-header">
+            <div class="panel-title">Дерево талантов (10 / 15 / 20 / 25)</div>
+            <span class="status-line">Левая ветка • Уровень • Правая ветка</span>
+          </div>
+          <div class="talent-tree" id="talentTree"></div>
+        </div>
+
+        <div class="glass panel">
+          <div class="panel-header">
+            <div class="panel-title">Все способности, Aghanim's Scepter и Shard (наведите мышкой)</div>
+            <span class="status-line" id="spellsCount">Загрузка...</span>
+          </div>
+          <div class="spells-grid" id="spellsGrid"></div>
+        </div>
+      </section>
+
+      <!-- СКАЧАТЬ ПРИЛОЖЕНИЕ -->
+      <section class="view-section" id="downloadView">
+        <div class="glass panel download-hero">
+          <div>
+            <div class="panel-title" style="margin-bottom:10px;">OPEX META COMPANION • WINDOWS OVERLAY</div>
+            <h2 style="font-size:28px; font-weight:500; margin-bottom:10px;">Игровой оверлей прямо поверх Dota 2</h2>
+            <p style="font-size:14px; color:var(--text-muted); line-height:1.6;">
+              Работает через официальный Dota 2 Game State Integration (без риска VAC). Показывает точки вардов, зоны фарма и маршруты прямо поверх миникарты, а также подбирает контрпики на драфте.
+            </p>
+            <ul class="feature-list">
+              <li>Прозрачные метки поверх игровой миникарты (пропускают клики мыши)</li>
+              <li>Автоподсветка точек Observer и Sentry, когда вард появляется в инвентаре</li>
+              <li>Зоны фарма и анимированные маршруты со стрелками под твою роль и минуту</li>
+              <li>Подбор контрпиков по роли и таймеры стаков, Лотоса и Руны Мудрости</li>
+            </ul>
+            <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:18px;">
+              <a class="neu-btn primary" id="exeDownloadBtn" href="https://github.com/yyuuber-blip/opex-meta/releases/latest/download/OPEX-META-Setup.exe" download>
+                Скачать OPEX-META-Setup.exe
+              </a>
+              <button class="neu-btn" id="downloadCfgBtn">Скачать конфиг Dota 2 (.cfg)</button>
+            </div>
+          </div>
+          <div class="stat-box" style="padding:18px;">
+            <div class="panel-title" style="margin-bottom:12px;">Установка за 3 шага</div>
+            <div style="display:flex; flex-direction:column; gap:12px; font-size:13px; color:var(--text-muted); line-height:1.5;">
+              <div><strong style="color:var(--text-milk);">1.</strong> Скачай и запусти <code>OPEX-META-Setup.exe</code>.</div>
+              <div><strong style="color:var(--text-milk);">2.</strong> Скачай конфиг и положи в папку:<br><code style="font-size:11px; color:#c8cdd8;">...\dota 2 beta\game\dota\cfg\gamestate_integration\</code></div>
+              <div><strong style="color:var(--text-milk);">3.</strong> В Dota 2 включи <strong>«Окно без рамки»</strong>. Клавиши: <code>Ctrl+Shift+O</code> (окно) и <code>Ctrl+Shift+M</code> (миникарта).</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- СРАВНЕНИЕ -->
+      <section class="view-section" id="compareView">
+        <div class="glass panel">
+          <div class="panel-header">
+            <div class="panel-title">Сравнение двух героев (формулы патча 7.42)</div>
+            <div style="display:flex; align-items:center; gap:12px; min-width:220px;">
+              <span class="status-line" id="compareLvlLabel">Уровень: 15</span>
+              <input type="range" id="compareLevel" min="1" max="30" value="15" />
+            </div>
+          </div>
+          <div class="compare-selectors">
+            <div>
+              <select class="neu-select" id="compareSelectA"></select>
+              <div class="compare-hero-card" id="compareCardA"></div>
+            </div>
+            <button class="neu-btn" id="swapCompareBtn">⇄</button>
+            <div>
+              <select class="neu-select" id="compareSelectB"></select>
+              <div class="compare-hero-card" id="compareCardB"></div>
+            </div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="glass panel">
+            <div class="panel-header"><div class="panel-title">График характеристик</div></div>
+            <canvas id="compareChart" height="230" style="width:100%; display:block;"></canvas>
+          </div>
+          <div class="glass panel">
+            <div class="panel-header"><div class="panel-title">Таблица сравнения</div></div>
+            <table class="compare-table">
+              <thead><tr><th>Показатель</th><th id="cmpThA">Герой A</th><th id="cmpThB">Герой B</th></tr></thead>
+              <tbody id="compareTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ЧАТ -->
+      <section class="view-section" id="chatView">
+        <div class="glass chat-box">
+          <div class="panel-header" style="margin-bottom:0;">
+            <div>
+              <div class="panel-title">Анонимный чат игроков</div>
+              <div class="status-line" id="chatIdentity">Вы пишете как: Аноним</div>
+            </div>
+            <button class="neu-btn" id="rerollAnon">Сменить номер</button>
+          </div>
+          <div class="chat-messages" id="chatMessages"></div>
+          <form class="chat-form" id="chatForm">
+            <input class="neu-input" id="chatInput" type="text" placeholder="Напишите сообщение без аккаунта..." autocomplete="off" />
+            <button class="neu-btn" type="submit">Отправить</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- НАСТРОЙКИ ФОНА И ЗВУКА -->
+      <section class="view-section" id="settingsView">
+        <div class="glass panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Настройка стекла, MP4-фона и звука</div>
+              <div class="status-line" id="bgStatusText" style="margin-top:4px;">Активен стандартный фон</div>
+            </div>
+            <button class="neu-btn" id="resetTheme">Сбросить</button>
+          </div>
+
+          <div class="settings-grid">
+            <div>
+              <div class="control-group"><div class="control-label"><span>Прозрачность панелей</span><span id="alphaVal">54%</span></div><input type="range" id="alphaRange" min="10" max="92" value="54" /></div>
+              <div class="control-group"><div class="control-label"><span>Размытие стекла</span><span id="blurVal">20px</span></div><input type="range" id="blurRange" min="0" max="36" value="20" /></div>
+              <div class="control-group"><div class="control-label"><span>Затемнение фона</span><span id="dimVal">44%</span></div><input type="range" id="dimRange" min="0" max="90" value="44" /></div>
+              <div class="control-group"><div class="control-label"><span>Громкость звука MP4-фона</span><span id="volumeVal">50%</span></div><input type="range" id="videoVolumeRange" min="0" max="100" value="50" /></div>
+              <div class="control-group"><div class="control-label"><span>Скорость MP4-видео</span><span id="speedVal">1.00x</span></div><input type="range" id="videoSpeedRange" min="0.25" max="2" step="0.05" value="1" /></div>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="neu-btn primary" id="toggleSoundBtn">Звук видео: Выкл</button>
+                <button class="neu-btn" id="toggleParticlesBtn">Частицы: Вкл</button>
+                <button class="neu-btn" id="clearVideoBtn">Убрать видео</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="control-group"><div class="control-label"><span>Загрузить фон с ПК (картинка или MP4 / WebM)</span></div><input type="file" id="bgFileInput" accept="image/*,video/mp4,video/webm,video/ogg" class="neu-input" /></div>
+              <div class="control-group">
+                <div class="control-label"><span>Прямая ссылка (.jpg / .png / .mp4)</span></div>
+                <div style="display:flex; gap:8px;"><input type="url" id="bgUrlInput" class="neu-input" placeholder="https://..." /><button class="neu-btn" id="applyBgUrl">Применить</button></div>
+              </div>
+              <div class="control-group">
+                <div class="control-label"><span>Монохромные пресеты</span></div>
+                <div class="preset-grid">
+                  <div class="preset-card" data-preset="obsidian" style="background:linear-gradient(135deg,#090a0d,#1c1f26);">Obsidian</div>
+                  <div class="preset-card" data-preset="smoke" style="background:radial-gradient(circle at 30% 20%,#49505e,#121418);">Smoke Mist</div>
+                  <div class="preset-card" data-preset="graphite" style="background:linear-gradient(160deg,#303540,#0d0e11 70%);">Graphite</div>
+                  <div class="preset-card" data-preset="milk" style="background:linear-gradient(135deg,#666d7d,#1a1d24);">Milky Fog</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const CDN = 'https://cdn.cloudflare.steamstatic.com';
+
+    // Подсветка стеклянных панелей за курсором
+    document.addEventListener('mousemove', e => {
+      document.querySelectorAll('.glass').forEach(el => {
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+      });
+    });
+
+    const PATCH_742_BOOTS = [
+      { key: 'power_treads', dname: 'Power Treads', cost: 1400 },
+      { key: 'phase_boots', dname: 'Phase Boots', cost: 1500 },
+      { key: 'arcane_boots', dname: 'Arcane Boots', cost: 1400 },
+      { key: 'tranquil_boots', dname: 'Tranquil Boots', cost: 925 },
+      { key: 'travel_boots', dname: 'Boots of Travel', cost: 2500 },
+      { key: 'guardian_greaves', dname: 'Guardian Greaves', cost: 5050 },
+      { key: 'boots_of_bearing', dname: 'Boots of Bearing', cost: 4225 },
+      { key: 'sabatons_of_mordiggian', dname: 'Sabatons of Mordiggian', cost: 5950 }
+    ];
+
+    const PATCH_742_ITEMS = [
+      { key: 'blink', dname: 'Blink Dagger', cost: 2250 },
+      { key: 'overwhelming_blink', dname: 'Overwhelming Blink', cost: 6800 },
+      { key: 'swift_blink', dname: 'Swift Blink', cost: 6800 },
+      { key: 'arcane_blink', dname: 'Arcane Blink', cost: 6800 },
+      { key: 'black_king_bar', dname: 'Black King Bar', cost: 4050 },
+      { key: 'ultimate_scepter', dname: "Aghanim's Scepter", cost: 4200 },
+      { key: 'ethereal_blade', dname: 'Ethereal Blade', cost: 5375 },
+      { key: 'sheepstick', dname: 'Scythe of Vyse', cost: 5200 },
+      { key: 'octarine_core', dname: 'Octarine Core', cost: 4800 },
+      { key: 'shivas_guard', dname: "Shiva's Guard", cost: 5175 },
+      { key: 'dagon_5', dname: 'Dagon 5', cost: 7450 },
+      { key: 'bloodthorn', dname: 'Bloodthorn', cost: 6250 },
+      { key: 'manta', dname: 'Manta Style', cost: 4650 },
+      { key: 'sange_and_yasha', dname: 'Sange and Yasha', cost: 4100 },
+      { key: 'kaya_and_sange', dname: 'Kaya and Sange', cost: 4100 },
+      { key: 'yasha_and_kaya', dname: 'Yasha and Kaya', cost: 4100 },
+      { key: 'skadi', dname: 'Eye of Skadi', cost: 5300 },
+      { key: 'refresher', dname: 'Refresher Orb', cost: 5000 },
+      { key: 'force_staff', dname: 'Force Staff', cost: 2200 },
+      { key: 'hurricane_pike', dname: 'Hurricane Pike', cost: 4450 },
+      { key: 'glimmer_cape', dname: 'Glimmer Cape', cost: 2150 },
+      { key: 'heart', dname: 'Heart of Tarrasque', cost: 5200 },
+      { key: 'mjollnir', dname: 'Mjollnir', cost: 5500 },
+      { key: 'gleipnir', dname: 'Gleipnir', cost: 5750 },
+      { key: 'butterfly', dname: 'Butterfly', cost: 5450 },
+      { key: 'satanic', dname: 'Satanic', cost: 5050 },
+      { key: 'monkey_king_bar', dname: 'Monkey King Bar', cost: 4700 },
+      { key: 'greater_crit', dname: 'Daedalus', cost: 5100 },
+      { key: 'abyssal_blade', dname: 'Abyssal Blade', cost: 6250 },
+      { key: 'nullifier', dname: 'Nullifier', cost: 4375 },
+      { key: 'silver_edge', dname: 'Silver Edge', cost: 5450 },
+      { key: 'disperser', dname: 'Disperser', cost: 6100 },
+      { key: 'harpoon', dname: 'Harpoon', cost: 4700 },
+      { key: 'devastator', dname: 'Parasma', cost: 5975 },
+      { key: 'wind_waker', dname: 'Wind Waker', cost: 6825 },
+      { key: 'sphere', dname: "Linken's Sphere", cost: 4800 },
+      { key: 'lotus_orb', dname: 'Lotus Orb', cost: 3850 },
+      { key: 'pipe', dname: 'Pipe of Insight', cost: 3725 },
+      { key: 'crimson_guard', dname: 'Crimson Guard', cost: 3725 },
+      { key: 'bloodstone', dname: 'Bloodstone', cost: 4400 },
+      { key: 'radiance', dname: 'Radiance', cost: 4700 },
+      { key: 'assault', dname: 'Assault Cuirass', cost: 5125 },
+      { key: 'desolator', dname: 'Desolator', cost: 3500 },
+      { key: 'aeon_disk', dname: 'Aeon Disk', cost: 3000 },
+      { key: 'spirit_vessel', dname: 'Spirit Vessel', cost: 2780 },
+      { key: 'solar_crest', dname: 'Solar Crest', cost: 2700 },
+      { key: 'blade_mail', dname: 'Blade Mail', cost: 2100 },
+      { key: 'phylactery', dname: 'Phylactery', cost: 2400 },
+      { key: 'caduceus', dname: 'Caduceus (7.42)', cost: 5400 },
+      { key: 'ristuls_devotion', dname: "Ristul's Devotion (7.42)", cost: 3800 },
+      { key: 'skypiercer', dname: 'Skypiercer (7.42)', cost: 6000 },
+      { key: 'starforge', dname: 'Starforge (7.42)', cost: 6000 }
+    ];
+
+    let allHeroes = [], heroById = {}, heroAbilitiesMap = {}, abilitiesMap = {}, aghsMap = {}, matchupsCache = {};
+    let currentAttr = 'all', currentHero = null;
+
+    function switchView(viewId) {
+      document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+      document.querySelectorAll('.nav-tabs .neu-btn').forEach(b => b.classList.toggle('active', b.dataset.view === viewId));
+      if (viewId === 'compareView') renderComparison();
+      if (viewId === 'heroesView' && currentHero) renderStats(currentHero);
+    }
+    document.querySelectorAll('.nav-tabs .neu-btn').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
+
+    document.getElementById('downloadCfgBtn').addEventListener('click', () => {
+      const cfg = `"OPEX META Integration"\n{\n    "uri"           "http://127.0.0.1:4000/gsi"\n    "timeout"       "5.0"\n    "buffer"        "0.1"\n    "throttle"      "0.2"\n    "heartbeat"     "10.0"\n    "data"\n    {\n        "map"       "1"\n        "player"    "1"\n        "hero"      "1"\n        "abilities" "1"\n        "items"     "1"\n    }\n}\n`;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([cfg], { type: 'text/plain;charset=utf-8' }));
+      a.download = 'gamestate_integration_opexmeta.cfg';
+      a.click();
+    });
+
+    function shortHeroName(npcName) { return npcName.replace('npc_dota_hero_', ''); }
+    function heroPortraitUrl(npcName) { return `${CDN}/apps/dota2/images/dota_react/heroes/${shortHeroName(npcName)}.png`; }
+    function abilityIconUrl(key) { return `${CDN}/apps/dota2/images/dota_react/abilities/${key}.png`; }
+    function itemIconUrl(key) { return `${CDN}/apps/dota2/images/dota_react/items/${key}.png`; }
+    function abilityVideoUrl(heroNpc, abKey) { return `${CDN}/apps/dota2/videos/dota_react/abilities/${shortHeroName(heroNpc)}/${abKey}.mp4`; }
+    function dotabuffSlug(name) { return name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-'); }
+    function attrLabel(attr) { return { str: 'STRENGTH', agi: 'AGILITY', int: 'INTELLIGENCE', all: 'UNIVERSAL' }[attr] || 'HERO'; }
+    function formatArrayOrVal(val) { return Array.isArray(val) ? val.join(' / ') : (val ? String(val) : '—'); }
+
+    async function loadDotaData() {
+      try {
+        const [heroesRes, heroAbRes, abRes, aghsRes] = await Promise.all([
+          fetch('https://api.opendota.com/api/constants/heroes'),
+          fetch('https://api.opendota.com/api/constants/hero_abilities'),
+          fetch('https://api.opendota.com/api/constants/abilities'),
+          fetch('https://api.opendota.com/api/constants/aghs_desc')
+        ]);
+        const heroesObj = await heroesRes.json();
+        heroAbilitiesMap = await heroAbRes.json();
+        abilitiesMap = await abRes.json();
+        (await aghsRes.json()).forEach(item => { aghsMap[item.hero_name] = item; });
+        allHeroes = Object.values(heroesObj).sort((a, b) => a.localized_name.localeCompare(b.localized_name));
+        allHeroes.forEach(h => { heroById[h.id] = h; });
+        document.getElementById('heroCountStatus').textContent = `${allHeroes.length} героев • Patch 7.42`;
+      } catch (e) {
+        allHeroes = [{ id: 105, name: 'npc_dota_hero_techies', localized_name: 'Techies', primary_attr: 'all', attack_type: 'Ranged', roles: ['Nuker', 'Disabler'], base_str: 19, str_gain: 2.5, base_agi: 14, agi_gain: 1.3, base_int: 25, int_gain: 3.0, move_speed: 300, base_armor: 5, attack_range: 700 }];
+        heroById[105] = allHeroes[0];
+        document.getElementById('heroCountStatus').textContent = 'Офлайн-режим';
+      }
+      populateCompareSelectors();
+      renderHeroList();
+      selectHero(allHeroes.find(h => h.localized_name === 'Techies') || allHeroes[0]);
+    }
+
+    function renderHeroList() {
+      const query = document.getElementById('heroSearch').value.trim().toLowerCase();
+      const container = document.getElementById('heroList');
+      container.innerHTML = '';
+      allHeroes.filter(h => {
+        const qOk = h.localized_name.toLowerCase().includes(query);
+        const attrKey = currentAttr === 'all_attr' ? 'all' : currentAttr;
+        return qOk && (currentAttr === 'all' || h.primary_attr === attrKey);
+      }).forEach(hero => {
+        const el = document.createElement('div');
+        el.className = 'hero-item' + (currentHero && currentHero.id === hero.id ? ' active' : '');
+        el.innerHTML = `<img class="hero-thumb" src="${heroPortraitUrl(hero.name)}" alt="${hero.localized_name}" loading="lazy" /><div><div class="hero-item-name">${hero.localized_name}</div><div class="hero-item-meta">${attrLabel(hero.primary_attr)}</div></div>`;
+        el.addEventListener('click', () => { selectHero(hero); switchView('heroesView'); });
+        container.appendChild(el);
+      });
+    }
+
+    function selectHero(hero) {
+      currentHero = hero;
+      renderHeroList();
+      document.getElementById('heroName').textContent = hero.localized_name;
+      document.getElementById('heroPortrait').src = heroPortraitUrl(hero.name);
+      document.getElementById('heroAttrBadge').textContent = attrLabel(hero.primary_attr);
+      document.getElementById('heroAttackType').textContent = `${hero.attack_type || 'Hero'} • Range ${hero.attack_range || '—'}`;
+      document.getElementById('heroRoles').innerHTML = (hero.roles || []).map(r => `<span class="role-tag">${r}</span>`).join('');
+      document.getElementById('dotabuffLink').href = `https://www.dotabuff.com/heroes/${dotabuffSlug(hero.localized_name)}`;
+      document.getElementById('d2ptLink').href = `https://dota2protracker.com/hero/${encodeURIComponent(hero.localized_name)}`;
+
+      renderStats(hero); renderBuildTable(hero); generateRandomBuild(); renderCounters(hero); renderTalents(hero); renderSpells(hero);
+    }
+
+    document.getElementById('randomHeroBtn').addEventListener('click', () => {
+      if (!allHeroes.length) return;
+      selectHero(allHeroes[Math.floor(Math.random() * allHeroes.length)]);
+      switchView('heroesView');
+    });
+
+    function generateRandomBuild() {
+      const boot = PATCH_742_BOOTS[Math.floor(Math.random() * PATCH_742_BOOTS.length)];
+      const chosen = [boot, ...[...PATCH_742_ITEMS].sort(() => Math.random() - 0.5).slice(0, 5)];
+      const totalGold = chosen.reduce((sum, i) => sum + i.cost, 0);
+      document.getElementById('randomBuildNote').textContent = `Патч 7.42 • ${currentHero ? currentHero.localized_name : ''} • Стоимость: ${totalGold}g`;
+      document.getElementById('randomBuildGrid').innerHTML = chosen.map(item => `
+        <div class="item-card">
+          <img src="${itemIconUrl(item.key)}" alt="${item.dname}" onerror="this.style.opacity='0.25'" />
+          <div class="item-card-name">${item.dname}</div>
+          <div class="item-card-cost">${item.cost}g</div>
+        </div>
+      `).join('');
+    }
+    document.getElementById('rerollBuildBtn').addEventListener('click', generateRandomBuild);
+    document.getElementById('rollBuildTopBtn').addEventListener('click', () => { generateRandomBuild(); document.getElementById('randomBuildGrid').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+
+    async function renderCounters(hero) {
+      const worstEl = document.getElementById('worstMatchups'), bestEl = document.getElementById('bestMatchups');
+      worstEl.innerHTML = '<div class="status-line">Загрузка...</div>';
+      bestEl.innerHTML = '<div class="status-line">Загрузка...</div>';
+      try {
+        let data = matchupsCache[hero.id];
+        if (!data) { data = await (await fetch(`https://api.opendota.com/api/heroes/${hero.id}/matchups`)).json(); matchupsCache[hero.id] = data; }
+        const valid = data.filter(m => m.games_played >= 30 && heroById[m.hero_id]).map(m => ({ ...m, wr: (m.wins / m.games_played) * 100 }));
+        const worst = [...valid].sort((a, b) => a.wr - b.wr).slice(0, 5);
+        const best = [...valid].sort((a, b) => b.wr - a.wr).slice(0, 5);
+        const rowHtml = (m, inv) => {
+          const opp = heroById[m.hero_id], wr = inv ? (100 - m.wr) : m.wr;
+          return `<div class="counter-row" onclick="selectHeroById(${opp.id})"><img src="${heroPortraitUrl(opp.name)}" alt="" /><div><div style="font-size:12.5px;">${opp.localized_name}</div><div class="wr-bar-wrap"><div class="wr-bar" style="width:${Math.min(100, wr).toFixed(1)}%"></div></div></div><div class="counter-wr">${wr.toFixed(1)}%</div></div>`;
+        };
+        worstEl.innerHTML = worst.map(m => rowHtml(m, true)).join('') || '<div class="status-line">Нет данных</div>';
+        bestEl.innerHTML = best.map(m => rowHtml(m, false)).join('') || '<div class="status-line">Нет данных</div>';
+      } catch (e) { worstEl.innerHTML = '<div class="status-line">Офлайн</div>'; bestEl.innerHTML = '<div class="status-line">Офлайн</div>'; }
+    }
+    window.selectHeroById = id => { if (heroById[id]) selectHero(heroById[id]); };
+
+    function renderStats(hero) {
+      const canvas = document.getElementById('statsChart');
+      const dpr = window.devicePixelRatio || 1, w = canvas.getBoundingClientRect().width || 460, h = 175;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h);
+      const metrics = [
+        { label: 'STR', val: hero.base_str || 20, max: 36 },
+        { label: 'AGI', val: hero.base_agi || 20, max: 36 },
+        { label: 'INT', val: hero.base_int || 20, max: 36 },
+        { label: 'MS',  val: hero.move_speed || 300, max: 340 },
+        { label: 'ARM', val: Math.max(0, Math.round((hero.base_armor || 0) + (hero.base_agi || 0) * 0.167)), max: 12 }
+      ];
+      const barW = Math.min(48, (w - 40) / metrics.length - 18), step = (w - 40) / metrics.length;
+      metrics.forEach((m, i) => {
+        const x = 28 + i * step, barH = Math.min(1, m.val / m.max) * 112, y = 138 - barH;
+        ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(x, 26, barW, 112);
+        const grad = ctx.createLinearGradient(0, y, 0, 138);
+        grad.addColorStop(0, 'rgba(241,243,247,0.92)'); grad.addColorStop(1, 'rgba(130,138,152,0.22)');
+        ctx.fillStyle = grad; ctx.fillRect(x, y, barW, barH);
+        ctx.fillStyle = '#f1f3f7'; ctx.font = '11px JetBrains Mono, monospace'; ctx.fillText(String(m.val), x, y - 6);
+        ctx.fillStyle = '#8b919e'; ctx.fillText(m.label, x, 158);
+      });
+      document.getElementById('statGrid').innerHTML = `
+        <div class="stat-box"><div class="stat-label">Сила</div><div class="stat-val">${hero.base_str} + ${hero.str_gain}</div></div>
+        <div class="stat-box"><div class="stat-label">Ловкость</div><div class="stat-val">${hero.base_agi} + ${hero.agi_gain}</div></div>
+        <div class="stat-box"><div class="stat-label">Интеллект</div><div class="stat-val">${hero.base_int} + ${hero.int_gain}</div></div>`;
+    }
+
+    function renderBuildTable(hero) {
+      const isCore = (hero.roles || []).includes('Carry'), isSup = (hero.roles || []).includes('Support');
+      const rows = hero.localized_name === 'Techies' ? [
+        ['Старт', ['Tango', 'Blood Grenade', 'Circlet', 'Iron Branch', 'Observer Ward']],
+        ['Ранняя игра', ['Arcane Boots', 'Magic Wand', 'Soul Ring', 'Null Talisman']],
+        ['Кор-предметы', ["Aghanim's Shard", 'Ethereal Blade', "Aghanim's Scepter", 'Octarine Core']],
+        ['Ситуативно', ['Caduceus', 'Force Staff', 'Glimmer Cape', 'Scythe of Vyse']]
+      ] : [
+        ['Старт', isSup ? ['Tango', 'Blood Grenade', 'Observer Ward', 'Sentry Ward'] : ['Tango', 'Quelling Blade / Circlet', 'Iron Branch x2', 'Faerie Fire']],
+        ['Ранняя игра', isSup ? ['Arcane Boots', 'Magic Wand', 'Wind Lace'] : ['Power Treads / Phase Boots', 'Magic Wand', 'Bracer / Null / Wraith']],
+        ['Кор-предметы', isCore ? ['Black King Bar', 'Manta Style / SnY', "Aghanim's Scepter", "Aghanim's Shard"] : ['Blink Dagger / Force Staff', 'Glimmer Cape / Caduceus', "Aghanim's Shard", "Aghanim's Scepter"]],
+        ['Ситуативно', ['Scythe of Vyse', 'Skypiercer', 'Starforge', 'Refresher Orb']]
+      ];
+      document.getElementById('buildTableBody').innerHTML = rows.map(([s, items]) => `<tr><td style="color:var(--text-muted);">${s}</td><td><div class="item-pills">${items.map(i => `<span class="item-pill">${i}</span>`).join('')}</div></td></tr>`).join('');
+    }
+
+    function renderTalents(hero) {
+      const rawTalents = heroAbilitiesMap[hero.name]?.talents || [];
+      let rows = [];
+      if (rawTalents.length >= 8) {
+        const byTier = { 1: [], 2: [], 3: [], 4: [] };
+        rawTalents.forEach(t => { const txt = abilitiesMap[t.name]?.dname || t.name.replace(/^special_bonus_/, '').replace(/_/g, ' '); if (byTier[t.level]) byTier[t.level].push(txt); });
+        rows = [
+          { lvl: 25, left: byTier[4][1] || '—', right: byTier[4][0] || '—' },
+          { lvl: 20, left: byTier[3][1] || '—', right: byTier[3][0] || '—' },
+          { lvl: 15, left: byTier[2][1] || '—', right: byTier[2][0] || '—' },
+          { lvl: 10, left: byTier[1][1] || '—', right: byTier[1][0] || '—' }
+        ];
+      } else rows = [25, 20, 15, 10].map(lvl => ({ lvl, left: 'Доступно при загрузке API', right: '—' }));
+      document.getElementById('talentTree').innerHTML = rows.map(r => `<div class="talent-row"><div class="talent-cell left">${r.left}</div><div class="talent-lvl">${r.lvl}</div><div class="talent-cell right">${r.right}</div></div>`).join('');
+    }
+
+    const tooltipEl = document.getElementById('spellTooltip'), tooltipVideo = document.getElementById('tooltipVideo');
+    function showSpellTooltip(e, info) {
+      document.getElementById('tooltipIcon').src = info.icon;
+      document.getElementById('tooltipTitle').textContent = info.title;
+      document.getElementById('tooltipSub').textContent = info.sub;
+      document.getElementById('tooltipDesc').textContent = info.desc;
+      document.getElementById('tooltipAttrs').innerHTML = info.attrs.map(a => `<div>${a}</div>`).join('');
+      tooltipVideo.classList.remove('ready');
+      if (info.videoUrl) { tooltipVideo.src = info.videoUrl; tooltipVideo.onloadeddata = () => tooltipVideo.classList.add('ready'); tooltipVideo.onerror = () => tooltipVideo.classList.remove('ready'); }
+      else tooltipVideo.removeAttribute('src');
+      tooltipEl.classList.add('visible'); moveSpellTooltip(e);
+    }
+    function moveSpellTooltip(e) {
+      let x = e.clientX + 18, y = e.clientY + 18;
+      const r = tooltipEl.getBoundingClientRect();
+      if (x + r.width > window.innerWidth - 12) x = e.clientX - r.width - 18;
+      if (y + r.height > window.innerHeight - 12) y = window.innerHeight - r.height - 12;
+      tooltipEl.style.left = x + 'px'; tooltipEl.style.top = Math.max(12, y) + 'px';
+    }
+    function hideSpellTooltip() { tooltipEl.classList.remove('visible'); tooltipVideo.pause(); }
+
+    function renderSpells(hero) {
+      const grid = document.getElementById('spellsGrid'); grid.innerHTML = '';
+      (heroAbilitiesMap[hero.name]?.abilities || []).filter(k => k && k !== 'generic_hidden' && !k.startsWith('special_bonus_')).forEach(key => {
+        const data = abilitiesMap[key] || {}, dname = data.dname || key.replace(/_/g, ' '), desc = data.desc || 'Описание способности.';
+        const cd = formatArrayOrVal(data.cd), mc = formatArrayOrVal(data.mc), icon = abilityIconUrl(key);
+        const attrs = (data.attrib || []).slice(0, 5).map(a => `${a.header || a.key}: ${formatArrayOrVal(a.value)}`);
+        if (data.dmg_type) attrs.unshift(`Тип урона: ${data.dmg_type}`);
+        const card = document.createElement('div'); card.className = 'spell-card';
+        card.innerHTML = `<div class="spell-top"><img class="spell-icon" src="${icon}" alt="" onerror="this.style.opacity='0.25'" /><div><div class="spell-name">${dname}</div><span class="spell-tag">Ability</span></div></div><div class="spell-desc">${desc}</div><div class="spell-meta"><span>CD: ${cd}</span><span>Mana: ${mc}</span></div>`;
+        const tip = { icon, title: dname, sub: `CD: ${cd} • Mana: ${mc}`, desc, attrs, videoUrl: abilityVideoUrl(hero.name, key) };
+        card.addEventListener('mouseenter', e => showSpellTooltip(e, tip));
+        card.addEventListener('mousemove', moveSpellTooltip);
+        card.addEventListener('mouseleave', hideSpellTooltip);
+        grid.appendChild(card);
+      });
+      const aghs = aghsMap[hero.name];
+      if (aghs?.scepter_desc) {
+        const icon = itemIconUrl('ultimate_scepter'), title = `Aghanim's Scepter${aghs.scepter_skill_name ? ': ' + aghs.scepter_skill_name : ''}`;
+        const card = document.createElement('div'); card.className = 'spell-card aghs';
+        card.innerHTML = `<div class="spell-top"><img class="spell-icon" src="${icon}" alt="" /><div><div class="spell-name">${title}</div><span class="spell-tag">Scepter</span></div></div><div class="spell-desc">${aghs.scepter_desc}</div>`;
+        card.addEventListener('mouseenter', e => showSpellTooltip(e, { icon, title, sub: '4200g', desc: aghs.scepter_desc, attrs: [] }));
+        card.addEventListener('mousemove', moveSpellTooltip); card.addEventListener('mouseleave', hideSpellTooltip);
+        grid.appendChild(card);
+      }
+      if (aghs?.shard_desc) {
+        const icon = itemIconUrl('aghanims_shard'), title = `Aghanim's Shard${aghs.shard_skill_name ? ': ' + aghs.shard_skill_name : ''}`;
+        const card = document.createElement('div'); card.className = 'spell-card aghs';
+        card.innerHTML = `<div class="spell-top"><img class="spell-icon" src="${icon}" alt="" /><div><div class="spell-name">${title}</div><span class="spell-tag">Shard</span></div></div><div class="spell-desc">${aghs.shard_desc}</div>`;
+        card.addEventListener('mouseenter', e => showSpellTooltip(e, { icon, title, sub: '1400g', desc: aghs.shard_desc, attrs: [] }));
+        card.addEventListener('mousemove', moveSpellTooltip); card.addEventListener('mouseleave', hideSpellTooltip);
+        grid.appendChild(card);
+      }
+      document.getElementById('spellsCount').textContent = `Всего: ${grid.children.length}`;
+    }
+
+    function populateCompareSelectors() {
+      const selA = document.getElementById('compareSelectA'), selB = document.getElementById('compareSelectB');
+      const html = allHeroes.map(h => `<option value="${h.id}">${h.localized_name}</option>`).join('');
+      selA.innerHTML = html; selB.innerHTML = html;
+      const t = allHeroes.find(h => h.localized_name === 'Techies') || allHeroes[0];
+      const p = allHeroes.find(h => h.localized_name === 'Pudge') || allHeroes[Math.min(1, allHeroes.length - 1)];
+      if (t) selA.value = String(t.id); if (p) selB.value = String(p.id);
+    }
+
+    function calcStatsAtLevel(hero, lvl) {
+      const k = lvl - 1;
+      const str = Math.round((hero.base_str || 20) + (hero.str_gain || 2) * k);
+      const agi = Math.round((hero.base_agi || 20) + (hero.agi_gain || 2) * k);
+      const intel = Math.round((hero.base_int || 20) + (hero.int_gain || 2) * k);
+      return { str, agi, intel, hp: 200 + str * 20, mana: 75 + intel * 12, armor: Number(((hero.base_armor || 0) + agi * 0.167).toFixed(1)), ms: hero.move_speed || 300 };
+    }
+
+    function renderComparison() {
+      const heroA = heroById[Number(document.getElementById('compareSelectA').value)] || allHeroes[0];
+      const heroB = heroById[Number(document.getElementById('compareSelectB').value)] || allHeroes[1] || allHeroes[0];
+      if (!heroA || !heroB) return;
+      const lvl = Number(document.getElementById('compareLevel').value);
+      document.getElementById('compareLvlLabel').textContent = `Уровень: ${lvl}`;
+      const cHtml = h => `<img src="${heroPortraitUrl(h.name)}" alt="" /><div><div style="font-size:16px;">${h.localized_name}</div><div class="status-line">${attrLabel(h.primary_attr)}</div></div>`;
+      document.getElementById('compareCardA').innerHTML = cHtml(heroA);
+      document.getElementById('compareCardB').innerHTML = cHtml(heroB);
+      const sA = calcStatsAtLevel(heroA, lvl), sB = calcStatsAtLevel(heroB, lvl);
+      document.getElementById('cmpThA').textContent = heroA.localized_name;
+      document.getElementById('cmpThB').textContent = heroB.localized_name;
+      const rows = [['HP (7.42)', sA.hp, sB.hp], ['Mana', sA.mana, sB.mana], ['STR', sA.str, sB.str], ['AGI', sA.agi, sB.agi], ['INT', sA.intel, sB.intel], ['Броня', sA.armor, sB.armor], ['MS', sA.ms, sB.ms]];
+      document.getElementById('compareTableBody').innerHTML = rows.map(([l, a, b]) => `<tr><td style="color:var(--text-muted);">${l}</td><td class="${a > b ? 'win' : a < b ? 'lose' : ''}">${a}</td><td class="${b > a ? 'win' : b < a ? 'lose' : ''}">${b}</td></tr>`).join('');
+      const canvas = document.getElementById('compareChart'), dpr = window.devicePixelRatio || 1, w = canvas.getBoundingClientRect().width || 460, h = 230;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h);
+      const metrics = [{ label: 'HP', a: sA.hp, b: sB.hp }, { label: 'MANA', a: sA.mana, b: sB.mana }, { label: 'STR', a: sA.str, b: sB.str }, { label: 'AGI', a: sA.agi, b: sB.agi }, { label: 'INT', a: sA.intel, b: sB.intel }];
+      const step = (w - 32) / metrics.length, barW = Math.min(20, step * 0.32);
+      metrics.forEach((m, i) => {
+        const max = Math.max(m.a, m.b, 1), x = 20 + i * step;
+        ctx.fillStyle = 'rgba(241,243,247,0.9)'; ctx.fillRect(x, 185 - (m.a / max) * 145, barW, (m.a / max) * 145);
+        ctx.fillStyle = 'rgba(115,122,138,0.72)'; ctx.fillRect(x + barW + 4, 185 - (m.b / max) * 145, barW, (m.b / max) * 145);
+        ctx.fillStyle = '#9399a6'; ctx.font = '11px JetBrains Mono, monospace'; ctx.fillText(m.label, x, 208);
+      });
+    }
+
+    document.getElementById('quickCompareBtn').addEventListener('click', () => { if (currentHero) document.getElementById('compareSelectA').value = String(currentHero.id); switchView('compareView'); });
+    document.getElementById('compareSelectA').addEventListener('change', renderComparison);
+    document.getElementById('compareSelectB').addEventListener('change', renderComparison);
+    document.getElementById('compareLevel').addEventListener('input', renderComparison);
+    document.getElementById('swapCompareBtn').addEventListener('click', () => { const a = document.getElementById('compareSelectA'), b = document.getElementById('compareSelectB'); [a.value, b.value] = [b.value, a.value]; renderComparison(); });
+    document.getElementById('heroSearch').addEventListener('input', renderHeroList);
+    document.querySelectorAll('#attrFilters .chip').forEach(ch => ch.addEventListener('click', () => { document.querySelectorAll('#attrFilters .chip').forEach(c => c.classList.remove('active')); ch.classList.add('active'); currentAttr = ch.dataset.attr; renderHeroList(); }));
+
+    // Система фонов + MP4 + звук
+    const root = document.documentElement, bgLayer = document.getElementById('bgLayer'), bgVideo = document.getElementById('bgVideo'), bgStatusText = document.getElementById('bgStatusText');
+    const PRESETS = {
+      obsidian: 'linear-gradient(135deg, #090a0d 0%, #1c1f26 100%)',
+      smoke: 'radial-gradient(circle at 30% 20%, #49505e 0%, #121418 75%)',
+      graphite: 'linear-gradient(160deg, #303540 0%, #0d0e11 72%)',
+      milk: 'linear-gradient(135deg, #666d7d 0%, #1a1d24 100%)'
+    };
+    let activeLocalVideoUrl = '', activeLocalImageCss = '';
+    const defaultCfg = { alpha: 54, blur: 20, dim: 44, bg: PRESETS.obsidian, videoUrl: '', speed: 1, volume: 50, soundOn: false, particles: true };
+    let themeCfg;
+    try { themeCfg = { ...defaultCfg, ...JSON.parse(localStorage.getItem('opexMetaThemeV2') || '{}') }; } catch (_) { themeCfg = { ...defaultCfg }; }
+
+    function applyTheme(cfg) {
+      root.style.setProperty('--glass-alpha', cfg.alpha / 100);
+      root.style.setProperty('--glass-blur', cfg.blur + 'px');
+      root.style.setProperty('--bg-dim', cfg.dim / 100);
+      document.getElementById('alphaRange').value = cfg.alpha;
+      document.getElementById('blurRange').value = cfg.blur;
+      document.getElementById('dimRange').value = cfg.dim;
+      document.getElementById('videoVolumeRange').value = cfg.volume;
+      document.getElementById('videoSpeedRange').value = cfg.speed;
+      document.getElementById('alphaVal').textContent = cfg.alpha + '%';
+      document.getElementById('blurVal').textContent = cfg.blur + 'px';
+      document.getElementById('dimVal').textContent = cfg.dim + '%';
+      document.getElementById('volumeVal').textContent = cfg.volume + '%';
+      document.getElementById('speedVal').textContent = Number(cfg.speed).toFixed(2) + 'x';
+      document.getElementById('toggleSoundBtn').textContent = cfg.soundOn ? 'Звук видео: Вкл' : 'Звук видео: Выкл';
+      document.getElementById('toggleParticlesBtn').textContent = 'Частицы: ' + (cfg.particles ? 'Вкл' : 'Выкл');
+      document.getElementById('bgParticles').style.display = cfg.particles ? 'block' : 'none';
+
+      bgLayer.style.backgroundImage = activeLocalImageCss || cfg.bg || PRESETS.obsidian;
+      const effectiveVideo = activeLocalVideoUrl || cfg.videoUrl;
+      if (effectiveVideo) {
+        if (bgVideo.dataset.currentSrc !== effectiveVideo) { bgVideo.dataset.currentSrc = effectiveVideo; bgVideo.src = effectiveVideo; bgVideo.load(); }
+        bgVideo.classList.add('active');
+        bgVideo.playbackRate = Number(cfg.speed || 1);
+        bgVideo.volume = Math.max(0, Math.min(1, Number(cfg.volume) / 100));
+        bgVideo.muted = !cfg.soundOn;
+        bgVideo.play().catch(() => { bgVideo.muted = true; bgVideo.play().catch(() => {}); });
+      } else {
+        bgVideo.classList.remove('active'); bgVideo.pause(); bgVideo.removeAttribute('src'); bgVideo.dataset.currentSrc = '';
+      }
+      try { localStorage.setItem('opexMetaThemeV2', JSON.stringify(cfg)); } catch (_) {}
+    }
+    applyTheme(themeCfg);
+
+    ['alpha', 'blur', 'dim'].forEach(k => document.getElementById(k + 'Range').addEventListener('input', e => { themeCfg[k] = Number(e.target.value); applyTheme(themeCfg); }));
+    document.getElementById('videoVolumeRange').addEventListener('input', e => { themeCfg.volume = Number(e.target.value); if (themeCfg.volume > 0 && !themeCfg.soundOn) themeCfg.soundOn = true; applyTheme(themeCfg); });
+    document.getElementById('videoSpeedRange').addEventListener('input', e => { themeCfg.speed = Number(e.target.value); applyTheme(themeCfg); });
+    document.getElementById('toggleSoundBtn').addEventListener('click', () => { themeCfg.soundOn = !themeCfg.soundOn; applyTheme(themeCfg); });
+    document.getElementById('toggleParticlesBtn').addEventListener('click', () => { themeCfg.particles = !themeCfg.particles; applyTheme(themeCfg); });
+    document.getElementById('clearVideoBtn').addEventListener('click', () => { activeLocalVideoUrl = ''; themeCfg.videoUrl = ''; bgStatusText.textContent = 'Видеофон отключён'; applyTheme(themeCfg); });
+    document.querySelectorAll('.preset-card').forEach(c => c.addEventListener('click', () => { activeLocalVideoUrl = ''; activeLocalImageCss = ''; themeCfg.videoUrl = ''; themeCfg.bg = PRESETS[c.dataset.preset]; bgStatusText.textContent = `Пресет: ${c.textContent}`; applyTheme(themeCfg); }));
+    document.getElementById('applyBgUrl').addEventListener('click', () => {
+      const u = document.getElementById('bgUrlInput').value.trim(); if (!u) return;
+      activeLocalVideoUrl = ''; activeLocalImageCss = '';
+      if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(u)) { themeCfg.videoUrl = u; bgStatusText.textContent = 'Видеофон по ссылке'; }
+      else { themeCfg.videoUrl = ''; themeCfg.bg = `url("${u}")`; bgStatusText.textContent = 'Картинка по ссылке'; }
+      applyTheme(themeCfg);
+    });
+    document.getElementById('bgFileInput').addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      if (f.type.startsWith('video/') || /\.(mp4|webm|ogg)$/i.test(f.name)) {
+        if (activeLocalVideoUrl) URL.revokeObjectURL(activeLocalVideoUrl);
+        activeLocalVideoUrl = URL.createObjectURL(f); themeCfg.videoUrl = ''; themeCfg.soundOn = true;
+        bgStatusText.textContent = `MP4-фон: ${f.name}`; applyTheme(themeCfg);
+      } else {
+        activeLocalVideoUrl = ''; themeCfg.videoUrl = '';
+        activeLocalImageCss = `url("${URL.createObjectURL(f)}")`;
+        bgStatusText.textContent = `Фон: ${f.name}`; applyTheme(themeCfg);
+      }
+    });
+    document.getElementById('resetTheme').addEventListener('click', () => { activeLocalVideoUrl = ''; activeLocalImageCss = ''; themeCfg = { ...defaultCfg }; bgStatusText.textContent = 'Настройки сброшены'; applyTheme(themeCfg); });
+
+    // Интерактивные частицы-созвездия (реагируют на мышь)
+    (function initConstellation() {
+      const c = document.getElementById('bgParticles'), ctx = c.getContext('2d');
+      let w, h, mouse = { x: -999, y: -999 };
+      window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+      const dots = Array.from({ length: 52 }, () => ({
+        x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35, r: 1 + Math.random() * 1.6
+      }));
+      function resize() { w = c.width = window.innerWidth; h = c.height = window.innerHeight; }
+      window.addEventListener('resize', resize); resize();
+      (function tick() {
+        if (themeCfg.particles) {
+          ctx.clearRect(0, 0, w, h);
+          for (let i = 0; i < dots.length; i++) {
+            const d = dots[i];
+            d.x = (d.x + d.vx + w) % w; d.y = (d.y + d.vy + h) % h;
+            ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(241, 243, 247, 0.38)'; ctx.fill();
+
+            for (let j = i + 1; j < dots.length; j++) {
+              const b = dots[j], dist = Math.hypot(d.x - b.x, d.y - b.y);
+              if (dist < 115) {
+                ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(b.x, b.y);
+                ctx.strokeStyle = `rgba(241, 243, 247, ${(1 - dist / 115) * 0.11})`;
+                ctx.lineWidth = 0.8; ctx.stroke();
+              }
+            }
+            const md = Math.hypot(d.x - mouse.x, d.y - mouse.y);
+            if (md < 140) {
+              ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(mouse.x, mouse.y);
+              ctx.strokeStyle = `rgba(241, 243, 247, ${(1 - md / 140) * 0.18})`;
+              ctx.lineWidth = 0.9; ctx.stroke();
+            }
+          }
+        }
+        requestAnimationFrame(tick);
+      })();
+    })();
+
+    // Анонимный чат
+    let anonId = localStorage.getItem('opexAnonId') || ('Аноним #' + Math.floor(1000 + Math.random() * 9000));
+    localStorage.setItem('opexAnonId', anonId);
+    document.getElementById('chatIdentity').textContent = `Вы пишете как: ${anonId}`;
+    document.getElementById('rerollAnon').addEventListener('click', () => { anonId = 'Аноним #' + Math.floor(1000 + Math.random() * 9000); localStorage.setItem('opexAnonId', anonId); document.getElementById('chatIdentity').textContent = `Вы пишете как: ${anonId}`; });
+    const chatChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('opex_meta_chat') : null;
+    let messages = JSON.parse(localStorage.getItem('opexMetaChat') || '[]');
+    function renderMessages() {
+      const box = document.getElementById('chatMessages');
+      box.innerHTML = messages.length ? messages.map(m => `<div class="msg ${m.author === anonId ? 'mine' : ''}"><div class="msg-head"><span>${m.author}</span><span>${m.time}</span></div><div>${m.text.replace(/</g, '&lt;')}</div></div>`).join('') : '<div class="status-line">Сообщений пока нет.</div>';
+      box.scrollTop = box.scrollHeight;
+    }
+    function pushMessage(msg, broadcast = true) { messages.push(msg); localStorage.setItem('opexMetaChat', JSON.stringify(messages.slice(-120))); renderMessages(); if (broadcast && chatChannel) chatChannel.postMessage(msg); }
+    if (chatChannel) chatChannel.onmessage = e => pushMessage(e.data, false);
+    document.getElementById('chatForm').addEventListener('submit', e => { e.preventDefault(); const i = document.getElementById('chatInput'); if (!i.value.trim()) return; pushMessage({ author: anonId, text: i.value.trim(), time: new Date().toTimeString().slice(0, 5) }); i.value = ''; });
+
+    renderMessages();
+    loadDotaData();
+  </script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>OPEX Minimap Layer</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: transparent; overflow: hidden;
+      font-family: Inter, -apple-system, sans-serif;
+    }
+    .frame {
+      position: relative;
+      width: 100%; height: 100%;
+      box-sizing: border-box;
+    }
+    /* Тонкие футуристичные уголки вокруг миникарты */
+    .corner {
+      position: absolute; width: 14px; height: 14px;
+      border-color: rgba(239, 241, 245, 0.42);
+      border-style: solid; pointer-events: none;
+    }
+    .tl { top: 2px; left: 2px; border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+    .tr { top: 2px; right: 2px; border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
+    .bl { bottom: 2px; left: 2px; border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
+    .br { bottom: 2px; right: 2px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+
+    .mini-badge {
+      position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+      padding: 2px 8px; border-radius: 999px;
+      background: rgba(10, 12, 16, 0.78);
+      border: 1px solid rgba(239, 241, 245, 0.22);
+      color: #eff1f5; font-size: 9.5px; letter-spacing: 0.08em;
+      text-transform: uppercase; white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .mini-badge.ward-on {
+      border-color: rgba(250, 204, 21, 0.75);
+      color: #fde68a;
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.35);
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+    <div class="mini-badge" id="miniBadge">OPEX HUD</div>
+    <canvas id="miniCanvas" width="320" height="320"></canvas>
+  </div>
+  <script>
+    let state = { clock_time: 0, team: 'radiant', role: 'Carry', has_observer: false, has_sentry: false };
+    let dash = 0;
+
+    // Точные координаты по твоей миникарте (0..1)
+    function getPlan(st) {
+      const isRad = String(st.team).toLowerCase() !== 'dire';
+      const sec = st.clock_time || 0;
+      const role = st.role || 'Carry';
+
+      if (sec < 480) {
+        return {
+          phase: 'EARLY',
+          wards: isRad
+            ? [
+                { x: 0.39, y: 0.38, t: 'obs' }, // Верхний холм мида у реки
+                { x: 0.57, y: 0.54, t: 'obs' }, // Нижний холм мида
+                { x: 0.77, y: 0.84, t: 'sen' }  // Блок пула на боте
+              ]
+            : [
+                { x: 0.57, y: 0.54, t: 'obs' },
+                { x: 0.39, y: 0.38, t: 'obs' },
+                { x: 0.22, y: 0.14, t: 'sen' }  // Блок пула на топе
+              ],
+          farms: isRad
+            ? [{ x: 0.54, y: 0.78, r: 0.075 }, { x: 0.68, y: 0.85, r: 0.065 }]
+            : [{ x: 0.44, y: 0.19, r: 0.075 }, { x: 0.30, y: 0.11, r: 0.065 }],
+          path: role === 'Carry'
+            ? (isRad ? [[0.80, 0.89], [0.68, 0.85], [0.54, 0.78], [0.44, 0.84]] : [[0.18, 0.08], [0.30, 0.11], [0.44, 0.19], [0.52, 0.12]])
+            : (isRad ? [[0.47, 0.50], [0.39, 0.38], [0.16, 0.30], [0.05, 0.20]] : [[0.52, 0.48], [0.57, 0.54], [0.85, 0.64], [0.95, 0.76]])
+        };
+      } else if (sec < 1320) {
+        return {
+          phase: 'MIDGAME',
+          wards: isRad
+            ? [
+                { x: 0.44, y: 0.16, t: 'obs' }, // Холм в лесу Dire
+                { x: 0.67, y: 0.51, t: 'obs' }, // Холм треугольника Dire
+                { x: 0.28, y: 0.46, t: 'sen' }  // Девард своего треугольника
+              ]
+            : [
+                { x: 0.54, y: 0.78, t: 'obs' }, // Холм в лесу Radiant
+                { x: 0.28, y: 0.46, t: 'obs' }, // Холм треугольника Radiant
+                { x: 0.67, y: 0.51, t: 'sen' }  // Девард своего треугольника
+              ],
+          farms: isRad
+            ? [{ x: 0.23, y: 0.50, r: 0.095 }, { x: 0.52, y: 0.74, r: 0.085 }]
+            : [{ x: 0.73, y: 0.48, r: 0.095 }, { x: 0.45, y: 0.22, r: 0.085 }],
+          path: role === 'Carry'
+            ? (isRad
+                ? [[0.11, 0.36], [0.23, 0.50], [0.34, 0.62], [0.52, 0.74], [0.23, 0.50]]
+                : [[0.89, 0.60], [0.73, 0.48], [0.62, 0.34], [0.45, 0.22], [0.73, 0.48]])
+            : (isRad
+                ? [[0.39, 0.38], [0.30, 0.29], [0.44, 0.16], [0.64, 0.28]]
+                : [[0.57, 0.54], [0.68, 0.65], [0.54, 0.78], [0.34, 0.66]])
+        };
+      } else {
+        return {
+          phase: 'LATE',
+          wards: isRad
+            ? [
+                { x: 0.67, y: 0.30, t: 'obs' }, // Вход на базу Dire
+                { x: 0.30, y: 0.29, t: 'obs' }, // Верхний Рошан
+                { x: 0.67, y: 0.51, t: 'sen' }
+              ]
+            : [
+                { x: 0.31, y: 0.64, t: 'obs' }, // Вход на базу Radiant
+                { x: 0.68, y: 0.65, t: 'obs' }, // Нижний Рошан
+                { x: 0.28, y: 0.46, t: 'sen' }
+              ],
+          farms: isRad ? [{ x: 0.46, y: 0.24, r: 0.10 }] : [{ x: 0.54, y: 0.74, r: 0.10 }],
+          path: isRad
+            ? [[0.30, 0.29], [0.46, 0.24], [0.67, 0.30]]
+            : [[0.68, 0.65], [0.54, 0.74], [0.31, 0.64]]
+        };
+      }
+    }
+
+    function drawArrow(ctx, x1, y1, x2, y2) {
+      const ang = Math.atan2(y2 - y1, x2 - x1);
+      const mx = (x1 + x2) * 0.5;
+      const my = (y1 + y2) * 0.5;
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.rotate(ang);
+      ctx.beginPath();
+      ctx.moveTo(5, 0);
+      ctx.lineTo(-4, -4);
+      ctx.lineTo(-2, 0);
+      ctx.lineTo(-4, 4);
+      ctx.closePath();
+      ctx.fillStyle = '#eff1f5';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw() {
+      const c = document.getElementById('miniCanvas');
+      const ctx = c.getContext('2d');
+      const w = c.width, h = c.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const plan = getPlan(state);
+      const t = Date.now() / 1000;
+      const pulse = (Math.sin(t * 4.5) + 1) * 0.5;
+
+      const badge = document.getElementById('miniBadge');
+      if (state.has_observer || state.has_sentry) {
+        badge.textContent = 'ПОСТАВЬ ВАРД';
+        badge.classList.add('ward-on');
+      } else {
+        badge.textContent = `${plan.phase} • ${state.role || 'CARRY'}`;
+        badge.classList.remove('ward-on');
+      }
+
+      // 1. Зоны фарма с мягким радарным свечением
+      plan.farms.forEach(z => {
+        const cx = z.x * w, cy = z.y * h, r = z.r * w;
+        const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, r);
+        grad.addColorStop(0, 'rgba(74, 222, 128, 0.30)');
+        grad.addColorStop(1, 'rgba(74, 222, 128, 0.02)');
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * (0.88 + pulse * 0.12), 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.72)';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+      });
+
+      // 2. Анимированный маршрут со стрелками
+      if (plan.path.length > 1) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(239, 241, 245, 0.7)';
+        ctx.shadowBlur = 8;
+        ctx.strokeStyle = 'rgba(239, 241, 245, 0.88)';
+        ctx.lineWidth = 2.2;
+        ctx.setLineDash([7, 6]);
+        ctx.lineDashOffset = -dash;
+        ctx.beginPath();
+        plan.path.forEach(([px, py], i) => i === 0 ? ctx.moveTo(px * w, py * h) : ctx.lineTo(px * w, py * h));
+        ctx.stroke();
+        ctx.restore();
+
+        for (let i = 0; i < plan.path.length - 1; i++) {
+          drawArrow(ctx, plan.path[i][0] * w, plan.path[i][1] * h, plan.path[i + 1][0] * w, plan.path[i + 1][1] * h);
+        }
+      }
+
+      // 3. Точки вардов (Observer = золото, Sentry = голубой)
+      plan.wards.forEach(wd => {
+        const x = wd.x * w, y = wd.y * h;
+        const isObs = wd.t === 'obs';
+        const active = isObs ? state.has_observer : state.has_sentry;
+        const color = isObs ? '#facc15' : '#38bdf8';
+
+        ctx.save();
+        ctx.shadowColor = color;
+        ctx.shadowBlur = active ? 16 : 8;
+
+        ctx.beginPath();
+        ctx.arc(x, y, active ? 7 + pulse * 8 : 6 + pulse * 2.5, 0, Math.PI * 2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = active ? 2.4 : 1.5;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x, y, 4.2, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+        ctx.fillStyle = '#090b0f';
+        ctx.fill();
+        ctx.restore();
+      });
+
+      dash = (dash + 0.55) % 26;
+      requestAnimationFrame(draw);
+    }
+
+    async function poll() {
+      try {
+        const res = await fetch('http://127.0.0.1:4000/state');
+        state = await res.json();
+      } catch (_) {}
+    }
+
+    draw();
+    setInterval(poll, 1000);
+  </script>
+</body>
+</html>
