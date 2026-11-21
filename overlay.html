@@ -4,89 +4,101 @@
   <meta charset="UTF-8" />
   <title>OPEX META HUD</title>
   <style>
-    :root { --hud-alpha: 0.84; }
+    :root { --hud-alpha: 0.88; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Inter, -apple-system, sans-serif;
       color: #f1f5f9; background: transparent; user-select: none;
     }
     .hud {
-      height: 100vh; display: flex; flex-direction: column; gap: 10px; padding: 14px;
-      border-radius: 20px;
-      background: linear-gradient(165deg, rgba(16, 19, 25, var(--hud-alpha)), rgba(9, 11, 15, var(--hud-alpha)));
-      backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
-      border: 1px solid rgba(255, 255, 255, 0.13);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.78), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      height: 100vh; display: flex; flex-direction: column; gap: 11px; padding: 16px;
+      border-radius: 22px;
+      background: linear-gradient(165deg, rgba(15, 18, 24, var(--hud-alpha)), rgba(8, 10, 14, var(--hud-alpha)));
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 28px 64px rgba(0, 0, 0, 0.82), inset 0 1px 0 rgba(255, 255, 255, 0.08);
       overflow: hidden;
     }
     .top-bar {
       -webkit-app-region: drag; display: flex; justify-content: space-between; align-items: center;
-      padding-bottom: 9px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.09);
     }
-    .brand { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.16em; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.6); }
+    .brand { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 700; letter-spacing: 0.16em; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.65); }
     .dot.on { background: #22c55e; box-shadow: 0 0 12px rgba(34,197,94,0.9); }
     .badge {
-      font-family: Consolas, monospace; font-size: 10.5px; padding: 3px 9px; border-radius: 999px;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1;
+      font-family: Consolas, monospace; font-size: 11px; padding: 4px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); color: #e2e8f0;
     }
-    .live-card {
-      display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
-      padding: 11px 13px; border-radius: 14px;
-      background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08);
+
+    .live-strip {
+      display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center;
+      padding: 11px 14px; border-radius: 14px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
     }
     .bars { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
-    .bar { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.09); overflow: hidden; }
     .bar-hp { height: 100%; background: linear-gradient(90deg, #16a34a, #4ade80); transition: width 0.25s; }
     .bar-mp { height: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); transition: width 0.25s; }
 
-    .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
     .btn {
-      background: rgba(255, 255, 255, 0.045); color: #cbd5e1;
-      border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 10px;
-      padding: 8px 4px; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+      background: rgba(255,255,255,0.05); color: #cbd5e1;
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+      padding: 9px 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
     }
-    .btn:hover { background: rgba(255, 255, 255, 0.09); color: #fff; }
-    .btn.active { background: rgba(241, 245, 249, 0.18); border-color: rgba(241, 245, 249, 0.42); color: #fff; }
+    .btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .btn.active { background: rgba(241,245,249,0.2); border-color: rgba(241,245,249,0.45); color: #fff; }
     .btn.rad { border-color: rgba(74, 222, 128, 0.5); color: #86efac; }
     .btn.dire { border-color: rgba(248, 113, 113, 0.5); color: #fca5a5; }
 
-    .panel { display: none; flex: 1; overflow-y: auto; flex-direction: column; gap: 9px; padding-right: 2px; }
+    .panel { display: none; flex: 1; overflow-y: auto; flex-direction: column; gap: 10px; padding-right: 3px; }
     .panel.active { display: flex; }
     .panel::-webkit-scrollbar { width: 4px; }
-    .panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 999px; }
+    .panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 999px; }
 
     .box {
-      padding: 11px 12px; border-radius: 13px;
-      background: rgba(255, 255, 255, 0.032); border: 1px solid rgba(255, 255, 255, 0.08);
-      font-size: 12px; line-height: 1.45;
+      padding: 12px 13px; border-radius: 14px;
+      background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.085);
+      font-size: 12.5px; line-height: 1.45;
     }
-    .muted { color: #94a3b8; font-size: 11px; }
-    .timer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .muted { color: #94a3b8; font-size: 11.5px; }
+
+    .timer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .timer-tile {
-      padding: 9px 6px; border-radius: 11px; text-align: center;
-      background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 9px 6px; border-radius: 12px; text-align: center;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
     }
-    .timer-val { font-family: Consolas, monospace; font-size: 15px; font-weight: 700; color: #f8fafc; margin-top: 3px; }
+    .timer-val { font-family: Consolas, monospace; font-size: 16px; font-weight: 700; color: #f8fafc; margin-top: 2px; }
+
+    .map-container {
+      position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 350px; margin: 0 auto;
+      border-radius: 14px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.18); background: #0d1117;
+    }
+    .map-container canvas { width: 100%; height: 100%; display: block; }
+
     .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
     .row6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
 
     select {
-      width: 100%; padding: 8px 9px; border-radius: 10px;
+      width: 100%; padding: 9px 10px; border-radius: 10px;
       background: #0c0f14; color: #f1f5f9;
-      border: 1px solid rgba(255,255,255,0.14); font-size: 12px; outline: none;
+      border: 1px solid rgba(255,255,255,0.16); font-size: 12.5px; outline: none;
     }
     input[type="range"] { width: 100%; accent-color: #f1f5f9; cursor: pointer; }
+
     .counter-item {
-      display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 9px;
-      padding: 7px 9px; border-radius: 10px;
-      background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); font-size: 12px;
+      display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: 10px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); font-size: 12.5px;
     }
-    .counter-item img { width: 38px; height: 22px; border-radius: 4px; object-fit: cover; }
+    .counter-item img { width: 42px; height: 24px; border-radius: 5px; object-fit: cover; }
+
     .alert-ward {
-      padding: 8px 11px; border-radius: 10px;
+      padding: 8px 12px; border-radius: 10px;
       background: rgba(250, 204, 21, 0.14); border: 1px solid rgba(250, 204, 21, 0.45);
-      color: #fef08a; font-size: 11.5px; display: none;
+      color: #fef08a; font-size: 12px; display: none;
     }
     .alert-ward.show { display: block; }
   </style>
@@ -94,15 +106,15 @@
 <body>
   <div class="hud">
     <div class="top-bar">
-      <div class="brand"><span class="dot" id="liveDot"></span><span>OPEX META</span></div>
+      <div class="brand"><span class="dot" id="liveDot"></span><span>OPEX META HUD</span></div>
       <span class="badge" id="gsiBadge">Ожидание Dota 2</span>
     </div>
 
-    <div class="live-card">
+    <div class="live-strip">
       <div>
-        <div style="display:flex; justify-content:space-between; font-size:12px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
           <strong id="heroTitle">Вне матча</strong>
-          <span id="goldTxt" style="color:#fde047; font-family:Consolas,monospace;">0g</span>
+          <span id="goldTxt" style="color:#fde047; font-family:Consolas,monospace;">0g • 0 LH</span>
         </div>
         <div class="bars">
           <div class="bar"><div class="bar-hp" id="hpBar" style="width:100%"></div></div>
@@ -110,20 +122,20 @@
         </div>
       </div>
       <div style="text-align:right;">
-        <div id="clockTxt" style="font-family:Consolas,monospace; font-size:17px; font-weight:700;">00:00</div>
+        <div id="clockTxt" style="font-family:Consolas,monospace; font-size:19px; font-weight:700;">00:00</div>
         <div id="teamTxt" class="muted">RADIANT</div>
       </div>
     </div>
 
     <div class="tabs">
-      <button class="btn active" onclick="openTab('tabGame', this)">Матч</button>
+      <button class="btn active" onclick="openTab('tabGame', this)">Карта и матч</button>
       <button class="btn" onclick="openTab('tabDraft', this)">Контрпики</button>
       <button class="btn" onclick="openTab('tabSetup', this)">Настройка</button>
     </div>
 
-    <!-- МАТЧ -->
+    <!-- КАРТА И МАТЧ -->
     <div id="tabGame" class="panel active">
-      <div id="wardAlert" class="alert-ward">Вард в инвентаре: ставь в пульсирующие точки на миникарте.</div>
+      <div id="wardAlert" class="alert-ward">У тебя есть вард: поставь в жёлтую (Observer) или синюю (Sentry) точку.</div>
 
       <div class="timer-grid">
         <div class="timer-tile"><div class="muted">Стак (:54)</div><div class="timer-val" id="tStack">--</div></div>
@@ -131,34 +143,42 @@
         <div class="timer-tile"><div class="muted">Алтарь мудрости</div><div class="timer-val" id="tShrine">--:--</div></div>
       </div>
 
+      <!-- Большая тактическая карта -->
+      <div class="map-container">
+        <canvas id="bigMap" width="380" height="380"></canvas>
+      </div>
+
       <div class="box">
-        <div class="muted" style="margin-bottom:6px;">Твоя позиция (меняет фарм, маршруты и варды):</div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span class="muted">Твоя позиция:</span>
+          <span class="muted" id="placedWardsTxt">Поставлено вардов: 0</span>
+        </div>
         <div class="row6" id="posBtns">
-          <button class="btn active" data-pos="auto" onclick="setPos('auto', this)">Авто</button>
-          <button class="btn" data-pos="pos1" onclick="setPos('pos1', this)">1</button>
-          <button class="btn" data-pos="pos2" onclick="setPos('pos2', this)">2</button>
-          <button class="btn" data-pos="pos3" onclick="setPos('pos3', this)">3</button>
-          <button class="btn" data-pos="pos4" onclick="setPos('pos4', this)">4</button>
-          <button class="btn" data-pos="pos5" onclick="setPos('pos5', this)">5</button>
-        </div>
-        <div id="posHint" class="muted" style="margin-top:6px;">Авто: определяет линию сам по твоим координатам в игре.</div>
-      </div>
-
-      <div class="box">
-        <div class="muted" style="margin-bottom:6px;">Сторона (авто в матче, можно переключить):</div>
-        <div class="row3">
-          <button class="btn active" id="btnAutoSide" onclick="setSide(null)">Авто</button>
-          <button class="btn rad" id="btnRadSide" onclick="setSide('radiant')">Свет</button>
-          <button class="btn dire" id="btnDireSide" onclick="setSide('dire')">Тьма</button>
+          <button class="btn active" onclick="setPos('auto', this)">Авто</button>
+          <button class="btn" onclick="setPos('pos1', this)">1</button>
+          <button class="btn" onclick="setPos('pos2', this)">2</button>
+          <button class="btn" onclick="setPos('pos3', this)">3</button>
+          <button class="btn" onclick="setPos('pos4', this)">4</button>
+          <button class="btn" onclick="setPos('pos5', this)">5</button>
         </div>
       </div>
 
-      <div class="box">
-        <div class="muted" style="margin-bottom:6px;">Слои на миникарте:</div>
-        <div class="row3">
-          <button class="btn active" id="lWards" onclick="toggleLayer('show_wards', this)">Варды</button>
-          <button class="btn active" id="lFarm" onclick="toggleLayer('show_farm', this)">Фарм</button>
-          <button class="btn active" id="lPath" onclick="toggleLayer('show_path', this)">Путь</button>
+      <div class="box" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <div class="muted" style="margin-bottom:5px;">Сторона:</div>
+          <div class="row3">
+            <button class="btn active" id="btnAutoSide" onclick="setSide(null)">Авто</button>
+            <button class="btn rad" id="btnRadSide" onclick="setSide('radiant')">Свет</button>
+            <button class="btn dire" id="btnDireSide" onclick="setSide('dire')">Тьма</button>
+          </div>
+        </div>
+        <div>
+          <div class="muted" style="margin-bottom:5px;">Слои:</div>
+          <div class="row3">
+            <button class="btn active" onclick="toggleLayer('show_wards', this)">Варды</button>
+            <button class="btn active" onclick="toggleLayer('show_farm', this)">Фарм</button>
+            <button class="btn active" onclick="toggleLayer('show_path', this)">Путь</button>
+          </div>
         </div>
       </div>
     </div>
@@ -168,7 +188,7 @@
       <div class="box">
         <div class="muted" style="margin-bottom:5px;">Кого нужно законтрпикать:</div>
         <select id="enemySelect"></select>
-        <div class="muted" style="margin:8px 0 5px;">Твоя позиция:</div>
+        <div class="muted" style="margin:9px 0 5px;">Твоя позиция:</div>
         <select id="laneSelect">
           <option value="all">Любая роль</option>
           <option value="Carry">Керри (1)</option>
@@ -176,55 +196,90 @@
           <option value="Initiator">Оффлейн (3)</option>
           <option value="Support">Саппорт (4 / 5)</option>
         </select>
-        <button class="btn active" style="width:100%; margin-top:8px;" onclick="findCounters()">Подобрать контрпик</button>
+        <button class="btn active" style="width:100%; margin-top:9px;" onclick="findCounters()">Подобрать контрпик</button>
       </div>
-      <div id="countersOut" style="display:flex; flex-direction:column; gap:6px;"></div>
+      <div id="countersOut" style="display:flex; flex-direction:column; gap:7px;"></div>
     </div>
 
-    <!-- НАСТРОЙКА -->
+    <!-- НАСТРОЙКА МИНИКАРТЫ И GSI -->
     <div id="tabSetup" class="panel">
       <div class="box">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <strong>Подгонка поверх миникарты</strong>
+          <strong>Автоподстройка под миникарту Dota 2</strong>
           <button class="btn" id="calBtn" onclick="toggleCalibrate()">Рамка: Выкл</button>
         </div>
-        <div class="muted" style="margin-bottom:4px;">Размер миникарты: <span id="vSize">275</span>px</div>
-        <input type="range" id="rSize" min="180" max="420" value="275" oninput="updateMiniBounds()" />
+        <div class="row3" style="margin-bottom:10px;">
+          <button class="btn" onclick="applyAutoPreset('normal')">Обычная</button>
+          <button class="btn" onclick="applyAutoPreset('large')">Большая</button>
+          <button class="btn" onclick="applyAutoPreset('right')">Справа</button>
+        </div>
+        <div class="muted" style="margin-bottom:4px;">Точная подгонка размера: <span id="vSize">260</span>px</div>
+        <input type="range" id="rSize" min="180" max="460" value="260" oninput="updateMiniBounds()" />
         <div class="muted" style="margin:7px 0 4px;">Сдвиг X: <span id="vX">0</span>px</div>
-        <input type="range" id="rX" min="0" max="1650" value="0" oninput="updateMiniBounds()" />
-        <div class="muted" style="margin:7px 0 4px;">Сдвиг Y: <span id="vY">800</span>px</div>
-        <input type="range" id="rY" min="400" max="1250" value="800" oninput="updateMiniBounds()" />
+        <input type="range" id="rX" min="0" max="2200" value="0" oninput="updateMiniBounds()" />
+        <div class="muted" style="margin:7px 0 4px;">Сдвиг Y: <span id="vY">820</span>px</div>
+        <input type="range" id="rY" min="400" max="1400" value="820" oninput="updateMiniBounds()" />
       </div>
 
       <div class="box">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
           <strong>Подключение Dota 2 (GSI)</strong>
-          <button class="btn" onclick="reinstallCfg()">Проверить</button>
+          <button class="btn" onclick="reinstallCfg()">Переустановить .cfg</button>
         </div>
-        <div id="gsiInfo" class="muted">Проверка конфига...</div>
+        <div id="gsiInfo" class="muted">Проверка...</div>
       </div>
 
       <div class="box muted">
-        <div><strong>Ctrl + Shift + O</strong> : скрыть / показать это окно</div>
-        <div style="margin-top:4px;"><strong>Ctrl + Shift + M</strong> : скрыть / показать слой миникарты</div>
+        <div><strong>Ctrl + Shift + O</strong> — скрыть / показать это большое окно</div>
+        <div style="margin-top:4px;"><strong>Ctrl + Shift + M</strong> — скрыть / показать слой поверх миникарты</div>
       </div>
     </div>
   </div>
 
   <script>
     const CDN = 'https://cdn.cloudflare.steamstatic.com';
-    const POS_HINTS = {
-      auto: 'Авто: определяет линию сам по твоим координатам в игре.',
-      pos1: 'Поз 1 (Керри): безопасная линия, лес и круг в треугольнике.',
-      pos2: 'Поз 2 (Мид): кемпы у мида, руны реки и ганки.',
-      pos3: 'Поз 3 (Оффлейн): сложная линия и захват вражеского леса.',
-      pos4: 'Поз 4 (Саппорт): блок пула врага, роум, глубокие варды и Алтарь.',
-      pos5: 'Поз 5 (Фулл-сап): сейвовые варды, стаки, Лотос и Алтарь мудрости.'
-    };
-
     let heroes = [], heroMap = {};
+    let state = { clock_time: 0, effective_team: 'radiant', role: 'auto', placed_wards: [], last_hits: 0 };
     let layerState = { show_wards: true, show_farm: true, show_path: true };
     let calibrating = false, miniInitDone = false;
+
+    const CAMPS = {
+      radiant: {
+        pos1: [{ x: 0.68, y: 0.79, n: 'Малый' }, { x: 0.78, y: 0.76, n: 'Большой' }, { x: 0.53, y: 0.77, n: 'Лес' }, { x: 0.46, y: 0.70, n: 'Центр' }, { x: 0.28, y: 0.57, n: 'Треуг.' }, { x: 0.24, y: 0.51, n: 'Древние' }],
+        pos2: [{ x: 0.41, y: 0.65, n: 'Мид' }, { x: 0.46, y: 0.70, n: 'Центр' }, { x: 0.28, y: 0.57, n: 'Треуг.' }, { x: 0.24, y: 0.51, n: 'Древние' }],
+        pos3: [{ x: 0.09, y: 0.46, n: 'Запад' }, { x: 0.24, y: 0.51, n: 'Древние' }, { x: 0.21, y: 0.24, n: 'Враж. топ' }, { x: 0.32, y: 0.22, n: 'Враж. пул' }],
+        pos4: [{ x: 0.09, y: 0.46, n: 'Стак' }, { x: 0.24, y: 0.51, n: 'Древние' }],
+        pos5: [{ x: 0.68, y: 0.79, n: 'Пул' }, { x: 0.53, y: 0.77, n: 'Стак' }, { x: 0.46, y: 0.70, n: 'Стак' }]
+      },
+      dire: {
+        pos1: [{ x: 0.32, y: 0.22, n: 'Малый' }, { x: 0.21, y: 0.24, n: 'Большой' }, { x: 0.43, y: 0.23, n: 'Лес' }, { x: 0.51, y: 0.29, n: 'Центр' }, { x: 0.71, y: 0.42, n: 'Треуг.' }, { x: 0.75, y: 0.47, n: 'Древние' }],
+        pos2: [{ x: 0.57, y: 0.35, n: 'Мид' }, { x: 0.51, y: 0.29, n: 'Центр' }, { x: 0.71, y: 0.42, n: 'Треуг.' }, { x: 0.75, y: 0.47, n: 'Древние' }],
+        pos3: [{ x: 0.90, y: 0.55, n: 'Восток' }, { x: 0.75, y: 0.47, n: 'Древние' }, { x: 0.78, y: 0.76, n: 'Враж. бот' }, { x: 0.68, y: 0.79, n: 'Враж. пул' }],
+        pos4: [{ x: 0.90, y: 0.55, n: 'Стак' }, { x: 0.75, y: 0.47, n: 'Древние' }],
+        pos5: [{ x: 0.32, y: 0.22, n: 'Пул' }, { x: 0.43, y: 0.23, n: 'Стак' }, { x: 0.51, y: 0.29, n: 'Стак' }]
+      }
+    };
+
+    const WARDS = {
+      radiant: {
+        early: [{ x: 0.40, y: 0.57, t: 'obs', n: 'Мид' }, { x: 0.64, y: 0.68, t: 'obs', n: 'Бот' }, { x: 0.78, y: 0.76, t: 'sen', n: 'Блок' }],
+        mid:   [{ x: 0.52, y: 0.34, t: 'obs', n: 'Лес Dire' }, { x: 0.68, y: 0.52, t: 'obs', n: 'Треуг. Dire' }, { x: 0.31, y: 0.48, t: 'sen', n: 'Девард' }]
+      },
+      dire: {
+        early: [{ x: 0.59, y: 0.44, t: 'obs', n: 'Мид' }, { x: 0.35, y: 0.32, t: 'obs', n: 'Топ' }, { x: 0.21, y: 0.24, t: 'sen', n: 'Блок' }],
+        mid:   [{ x: 0.47, y: 0.65, t: 'obs', n: 'Лес Rad' }, { x: 0.31, y: 0.48, t: 'obs', n: 'Треуг. Rad' }, { x: 0.68, y: 0.52, t: 'sen', n: 'Девард' }]
+      }
+    };
+
+    function worldToMap(xpos, ypos) {
+      if (typeof xpos !== 'number' || typeof ypos !== 'number') return null;
+      return { x: Math.max(0.02, Math.min(0.98, (xpos + 8200) / 16400)), y: Math.max(0.02, Math.min(0.98, 1 - (ypos + 8200) / 16400)) };
+    }
+
+    function fmt(sec) {
+      const s = Math.max(0, Math.floor(sec));
+      return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    }
 
     function openTab(id, btn) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -233,17 +288,19 @@
       btn.classList.add('active');
     }
 
-    function sendControl(payload) {
-      fetch('http://127.0.0.1:4000/control', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).catch(() => {});
+    async function sendControl(payload) {
+      try {
+        const r = await fetch('http://127.0.0.1:4000/control', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        return await r.json();
+      } catch (_) { return null; }
     }
 
     function setPos(pos, btn) {
       document.querySelectorAll('#posBtns .btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('posHint').textContent = POS_HINTS[pos] || '';
       sendControl({ role: pos });
     }
 
@@ -267,6 +324,20 @@
       sendControl({ calibrate: calibrating });
     }
 
+    async function applyAutoPreset(preset) {
+      const res = await sendControl({ autoPreset: preset });
+      if (res && res.miniCfg) syncSliders(res.miniCfg);
+    }
+
+    function syncSliders(cfg) {
+      document.getElementById('rSize').value = cfg.miniSize;
+      document.getElementById('rX').value = cfg.miniX;
+      document.getElementById('rY').value = cfg.miniY;
+      document.getElementById('vSize').textContent = cfg.miniSize;
+      document.getElementById('vX').textContent = cfg.miniX;
+      document.getElementById('vY').textContent = cfg.miniY;
+    }
+
     function updateMiniBounds() {
       const miniSize = Number(document.getElementById('rSize').value);
       const miniX = Number(document.getElementById('rX').value);
@@ -280,15 +351,74 @@
     async function reinstallCfg() {
       const res = await fetch('http://127.0.0.1:4000/reinstall-cfg', { method: 'POST' });
       const d = await res.json();
-      document.getElementById('gsiInfo').textContent = d.installed
-        ? 'Конфиг установлен. Перезапусти Dota 2.'
-        : `Не найдено: ${d.error}`;
+      document.getElementById('gsiInfo').textContent = d.installed ? 'Конфиг установлен. Перезапусти Dota 2.' : `Ошибка: ${d.error}`;
+    }
+
+    function drawBigMap() {
+      const c = document.getElementById('bigMap');
+      const ctx = c.getContext('2d');
+      const w = c.width, h = c.height;
+      ctx.fillStyle = '#10141c'; ctx.fillRect(0, 0, w, h);
+
+      // Река и базы
+      ctx.strokeStyle = 'rgba(56, 139, 196, 0.25)'; ctx.lineWidth = 28; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(w * 0.22, h * 0.24); ctx.lineTo(w * 0.76, h * 0.72); ctx.stroke();
+      ctx.fillStyle = 'rgba(34, 197, 94, 0.16)'; ctx.fillRect(0, h * 0.74, w * 0.24, h * 0.26);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.16)'; ctx.fillRect(w * 0.76, 0, w * 0.24, h * 0.26);
+
+      const side = String(state.effective_team || 'radiant').toLowerCase() === 'dire' ? 'dire' : 'radiant';
+      const pos = (state.role && state.role !== 'auto' && CAMPS[side][state.role]) ? state.role : 'pos1';
+      const camps = CAMPS[side][pos];
+      const wards = (state.clock_time || 0) < 480 ? WARDS[side].early : WARDS[side].mid;
+      const placed = (state.placed_wards || []).map(pw => ({ ...pw, p: worldToMap(pw.xpos, pw.ypos) })).filter(pw => pw.p);
+
+      // Кемпы
+      if (layerState.show_farm) {
+        camps.forEach(cp => {
+          ctx.beginPath(); ctx.arc(cp.x * w, cp.y * h, 8, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(74, 222, 128, 0.22)'; ctx.fill();
+          ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.fillStyle = '#cbd5e1'; ctx.font = '10px Segoe UI, sans-serif';
+          ctx.fillText(cp.n, cp.x * w + 10, cp.y * h + 3);
+        });
+      }
+
+      // Рекомендуемые варды (если ещё не поставлены)
+      if (layerState.show_wards) {
+        wards.forEach(wd => {
+          const covered = placed.some(pw => Math.hypot(pw.p.x - wd.x, pw.p.y - wd.y) < 0.095);
+          if (covered) return;
+          const color = wd.t === 'obs' ? '#facc15' : '#38bdf8';
+          ctx.beginPath(); ctx.arc(wd.x * w, wd.y * h, 6, 0, Math.PI * 2);
+          ctx.fillStyle = color; ctx.fill();
+          ctx.fillStyle = color; ctx.font = '10px Segoe UI, sans-serif';
+          ctx.fillText(wd.n, wd.x * w + 9, wd.y * h + 3);
+        });
+
+        // Уже поставленные варды + оставшееся время
+        placed.forEach(pw => {
+          const left = Math.max(0, pw.expiresAt - (state.clock_time || 0));
+          ctx.beginPath(); ctx.arc(pw.p.x * w, pw.p.y * h, 7, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(34, 197, 94, 0.5)'; ctx.fill();
+          ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 1.8; ctx.stroke();
+          ctx.fillStyle = '#86efac'; ctx.font = '10px Consolas, monospace';
+          ctx.fillText(fmt(left), pw.p.x * w + 9, pw.p.y * h + 3);
+        });
+      }
+
+      // Позиция героя
+      const hp = worldToMap(state.xpos, state.ypos);
+      if (hp) {
+        ctx.beginPath(); ctx.arc(hp.x * w, hp.y * h, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff'; ctx.fill();
+        ctx.strokeStyle = '#090b0f'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      requestAnimationFrame(drawBigMap);
     }
 
     async function loadHeroes() {
       try {
-        const res = await fetch('https://api.opendota.com/api/constants/heroes');
-        const data = await res.json();
+        const data = await (await fetch('https://api.opendota.com/api/constants/heroes')).json();
         heroes = Object.values(data).sort((a, b) => a.localized_name.localeCompare(b.localized_name));
         heroes.forEach(h => (heroMap[h.id] = h));
         document.getElementById('enemySelect').innerHTML = heroes.map(h => `<option value="${h.id}">${h.localized_name}</option>`).join('');
@@ -300,62 +430,51 @@
       const role = document.getElementById('laneSelect').value;
       const out = document.getElementById('countersOut');
       out.innerHTML = '<div class="muted">Считаем...</div>';
-      const res = await fetch(`https://api.opendota.com/api/heroes/${enemyId}/matchups`);
-      const list = await res.json();
+      const list = await (await fetch(`https://api.opendota.com/api/heroes/${enemyId}/matchups`)).json();
       const best = list
         .filter(m => m.games_played >= 40 && heroMap[m.hero_id])
         .filter(m => role === 'all' || (heroMap[m.hero_id].roles || []).includes(role))
         .map(m => ({ hero: heroMap[m.hero_id], wr: (1 - m.wins / m.games_played) * 100 }))
-        .sort((a, b) => b.wr - a.wr).slice(0, 7);
-      out.innerHTML = best.map(i => {
-        const short = i.hero.name.replace('npc_dota_hero_', '');
-        return `<div class="counter-item"><img src="${CDN}/apps/dota2/images/dota_react/heroes/${short}.png" /><span>${i.hero.localized_name}</span><strong>${i.wr.toFixed(1)}%</strong></div>`;
-      }).join('') || '<div class="muted">Нет данных</div>';
-    }
-
-    function fmt(sec) {
-      const s = Math.max(0, Math.floor(sec));
-      return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+        .sort((a, b) => b.wr - a.wr).slice(0, 8);
+      out.innerHTML = best.map(i => `<div class="counter-item"><img src="${CDN}/apps/dota2/images/dota_react/heroes/${i.hero.name.replace('npc_dota_hero_', '')}.png" /><span>${i.hero.localized_name}</span><strong>${i.wr.toFixed(1)}%</strong></div>`).join('') || '<div class="muted">Нет данных</div>';
     }
 
     async function poll() {
       try {
-        const res = await fetch('http://127.0.0.1:4000/state');
-        const st = await res.json();
-        document.getElementById('liveDot').classList.toggle('on', Boolean(st.connected));
-        document.getElementById('gsiBadge').textContent = st.connected ? 'DOTA 2 LIVE' : 'Ожидание матча';
-        document.getElementById('clockTxt').textContent = fmt(st.clock_time || 0);
-        document.getElementById('teamTxt').textContent = String(st.effective_team || 'radiant').toUpperCase();
-        document.getElementById('heroTitle').textContent = st.hero ? st.hero.replace('npc_dota_hero_', '').toUpperCase() : 'Вне матча';
-        document.getElementById('goldTxt').textContent = (st.gold || 0) + 'g';
-        document.getElementById('hpBar').style.width = (st.hp_pct ?? 100) + '%';
-        document.getElementById('mpBar').style.width = (st.mana_pct ?? 100) + '%';
-        document.getElementById('wardAlert').classList.toggle('show', Boolean(st.has_observer || st.has_sentry));
+        state = await (await fetch('http://127.0.0.1:4000/state')).json();
+        document.getElementById('liveDot').classList.toggle('on', Boolean(state.connected));
+        document.getElementById('gsiBadge').textContent = state.connected ? 'DOTA 2 LIVE' : 'Ожидание матча';
+        document.getElementById('clockTxt').textContent = fmt(state.clock_time || 0);
+        document.getElementById('teamTxt').textContent = String(state.effective_team || 'radiant').toUpperCase();
+        document.getElementById('heroTitle').textContent = state.hero ? state.hero.replace('npc_dota_hero_', '').toUpperCase() : 'Вне матча';
+        document.getElementById('goldTxt').textContent = `${state.gold || 0}g • ${state.last_hits || 0} LH`;
+        document.getElementById('hpBar').style.width = (state.hp_pct ?? 100) + '%';
+        document.getElementById('mpBar').style.width = (state.mana_pct ?? 100) + '%';
+        document.getElementById('placedWardsTxt').textContent = `Поставлено вардов: ${(state.placed_wards || []).length}`;
 
-        const sec = Math.max(0, st.clock_time || 0);
+        const hasWard = Boolean(state.has_observer || state.has_sentry);
+        document.getElementById('wardAlert').classList.toggle('show', hasWard);
+
+        const sec = Math.max(0, state.clock_time || 0);
         const toStack = 54 - (sec % 60);
         document.getElementById('tStack').textContent = (toStack >= 0 ? toStack : toStack + 60) + 's';
         document.getElementById('tLotus').textContent = fmt(180 - (sec % 180));
         document.getElementById('tShrine').textContent = fmt(420 - (sec % 420));
 
-        document.getElementById('gsiInfo').textContent = st.gsi_installed
-          ? (st.connected ? 'Подключено к Dota 2' : 'Конфиг установлен. Перезапусти Dota 2 и зайди в матч.')
-          : 'Конфиг не найден. Положи .cfg в папку Dota 2 вручную.';
+        document.getElementById('gsiInfo').textContent = state.gsi_installed
+          ? (state.connected ? 'Подключено к Dota 2' : 'Конфиг установлен. Перезапусти Dota 2 и зайди в матч.')
+          : 'Конфиг не найден. Нажми «Переустановить .cfg».';
 
-        if (!miniInitDone && st.miniCfg) {
+        if (!miniInitDone && state.miniCfg) {
           miniInitDone = true;
-          document.getElementById('rSize').value = st.miniCfg.miniSize;
-          document.getElementById('rX').value = st.miniCfg.miniX;
-          document.getElementById('rY').value = st.miniCfg.miniY;
-          document.getElementById('vSize').textContent = st.miniCfg.miniSize;
-          document.getElementById('vX').textContent = st.miniCfg.miniX;
-          document.getElementById('vY').textContent = st.miniCfg.miniY;
+          syncSliders(state.miniCfg);
         }
       } catch (_) {}
     }
 
     loadHeroes();
-    setInterval(poll, 700);
+    drawBigMap();
+    setInterval(poll, 500);
   </script>
 </body>
 </html>
