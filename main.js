@@ -6,7 +6,7 @@ const path = require('path');
 let mainWin;
 let minimapWin;
 
-const CONFIG_PATH = path.join(app.getPath('userData'), 'opex-settings.json');
+const CONFIG_PATH = path.join(app.getPath('userData'), 'opex-settings-v2.json');
 
 const GSI_CFG_CONTENT = `"OPEX META Integration"
 {
@@ -26,15 +26,19 @@ const GSI_CFG_CONTENT = `"OPEX META Integration"
 }
 `;
 
+// Авторасчёт точной геометрии миникарты Dota 2 под текущее разрешение экрана
+function calcAutoMinimapBounds(preset = 'normal') {
+  const { width, height } = screen.getPrimaryDisplay().bounds;
+  // В Dota 2 обычная миникарта ~24.2% высоты экрана, увеличенная ~27.8%
+  const ratio = preset === 'large' ? 0.278 : 0.242;
+  const size = Math.round(height * ratio);
+  const x = preset === 'right' ? (width - size) : 0;
+  const y = height - size;
+  return { miniX: x, miniY: y, miniSize: size, preset };
+}
+
 function loadSavedSettings() {
-  const { height } = screen.getPrimaryDisplay().bounds;
-  const defaultSize = Math.round(height * 0.255);
-  const defaults = {
-    miniX: 0,
-    miniY: height - defaultSize,
-    miniSize: defaultSize,
-    calibrate: false
-  };
+  const defaults = { ...calcAutoMinimapBounds('normal'), calibrate: false };
   try {
     if (fs.existsSync(CONFIG_PATH)) {
       return { ...defaults, ...JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) };
@@ -44,12 +48,9 @@ function loadSavedSettings() {
 }
 
 function saveSettings(cfg) {
-  try {
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2), 'utf8');
-  } catch (_) {}
+  try { fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2), 'utf8'); } catch (_) {}
 }
 
-// Автопоиск всех библиотек Steam и установка GSI-конфига в Dota 2
 function autoInstallGsiConfig() {
   const candidateRoots = [
     'C:\\Program Files (x86)\\Steam',
@@ -62,7 +63,6 @@ function autoInstallGsiConfig() {
     'F:\\SteamLibrary'
   ];
 
-  // Парсим libraryfolders.vdf, чтобы найти нестандартные диски Steam
   const vdfCandidates = [
     'C:\\Program Files (x86)\\Steam\\steamapps\\libraryfolders.vdf',
     'C:\\Program Files\\Steam\\steamapps\\libraryfolders.vdf',
@@ -72,8 +72,7 @@ function autoInstallGsiConfig() {
     try {
       if (fs.existsSync(vdfPath)) {
         const text = fs.readFileSync(vdfPath, 'utf8');
-        const matches = text.matchAll(/"path"\s+"([^"]+)"/g);
-        for (const m of matches) {
+        for (const m of text.matchAll(/"path"\s+"([^"]+)"/g)) {
           const libPath = m[1].replace(/\\\\/g, '\\');
           if (!candidateRoots.includes(libPath)) candidateRoots.push(libPath);
         }
@@ -98,8 +97,33 @@ function autoInstallGsiConfig() {
   return { installed: false, error: 'Папка Dota 2 не найдена автоматически' };
 }
 
+// Подсчёт всех вардов во всех слотах и рюкзаке
+function countWards(itemsObj) {
+  let obs = 0, sen = 0, disp = 0;
+  if (!itemsObj) return { obs, sen, disp, total: 0 };
+  Object.entries(itemsObj).forEach(([slotKey, slot]) => {
+    if (!slot || !slot.name) return;
+    // Считаем только инвентарь и рюкзак (игнорируем стэш)
+    if (!slotKey.startsWith('slot') && !slotKey.startsWith('backpack')) return;
+    const ch = typeof slot.charges === 'number' ? slot.charges : 1;
+    if (slot.name === 'item_ward_observer') obs += ch;
+    else if (slot.name === 'item_ward_sentry') sen += ch;
+    else if (slot.name === 'item_ward_dispenser') disp += ch;
+  });
+  return { obs, sen, disp, total: obs + sen + disp };
+}
+
+function parseTeam(data, fallback) {
+  const raw = (data.player?.team_name || data.hero?.team_name || '').toLowerCase();
+  if (raw.includes('dire')) return 'dire';
+  if (raw.includes('radiant')) return 'radiant';
+  return fallback;
+}
+
 let gsiInstallInfo = { installed: false, path: '' };
-let miniCfg = { miniX: 0, miniY: 800, miniSize: 275, calibrate: false };
+let miniCfg = { miniX: 0, miniY: 800, miniSize: 260, preset: 'normal', calibrate: false };
+let prevWardCounts = null;
+let placedWards = []; // { id, type, xpos, ypos, placedAt, expiresAt }
 
 let latestState = {
   connected: false,
@@ -109,15 +133,17 @@ let latestState = {
   team: 'radiant',
   team_override: null,
   hero: null,
+  alive: true,
   hp_pct: 100,
   mana_pct: 100,
   gold: 0,
   last_hits: 0,
   has_observer: false,
   has_sentry: false,
+  ward_counts: { obs: 0, sen: 0, disp: 0, total: 0 },
   xpos: null,
   ypos: null,
-  role: 'Carry',
+  role: 'auto',
   show_wards: true,
   show_farm: true,
   show_path: true,
@@ -126,16 +152,14 @@ let latestState = {
   gsi_path: ''
 };
 
-function hasItem(itemsObj, targetNames) {
-  if (!itemsObj) return false;
-  return Object.values(itemsObj).some(slot => slot && targetNames.includes(slot.name));
-}
-
-function parseTeam(data) {
-  const raw = (data.player?.team_name || data.hero?.team_name || '').toLowerCase();
-  if (raw.includes('dire')) return 'dire';
-  if (raw.includes('radiant')) return 'radiant';
-  return latestState.team;
+function applyMiniBounds() {
+  if (!minimapWin) return;
+  minimapWin.setBounds({
+    x: miniCfg.miniX,
+    y: miniCfg.miniY,
+    width: miniCfg.miniSize,
+    height: miniCfg.miniSize
+  });
 }
 
 const server = http.createServer((req, res) => {
@@ -143,10 +167,7 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    return res.end();
-  }
+  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
   if (req.method === 'POST' && req.url === '/gsi') {
     let body = '';
@@ -154,22 +175,58 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
+        const clock = data.map?.clock_time ?? latestState.clock_time;
+        const xpos = typeof data.hero?.xpos === 'number' ? data.hero.xpos : latestState.xpos;
+        const ypos = typeof data.hero?.ypos === 'number' ? data.hero.ypos : latestState.ypos;
+        const alive = data.hero?.alive !== false;
+        const counts = countWards(data.items);
+
+        // Если начался новый матч — сбрасываем старые поставленные варды
+        if (clock < latestState.clock_time - 30) {
+          placedWards = [];
+          prevWardCounts = null;
+        }
+
+        // Детект установки варда: количество вардов уменьшилось, герой жив и не на фонтане
+        if (prevWardCounts && alive && typeof xpos === 'number' && typeof ypos === 'number') {
+          const nearFountain = (xpos < -6200 && ypos < -5800) || (xpos > 6200 && ypos > 5800);
+          if (!nearFountain && counts.total < prevWardCounts.total) {
+            let wardType = 'obs';
+            if (counts.sen < prevWardCounts.sen && counts.obs >= prevWardCounts.obs) wardType = 'sen';
+            const duration = wardType === 'obs' ? 360 : 420;
+            placedWards.push({
+              id: Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+              type: wardType,
+              xpos,
+              ypos,
+              placedAt: clock,
+              expiresAt: clock + duration
+            });
+          }
+        }
+        prevWardCounts = counts;
+
+        // Удаляем истёкшие варды
+        placedWards = placedWards.filter(w => clock < w.expiresAt);
+
         latestState = {
           ...latestState,
           connected: true,
           last_packet_ts: Date.now(),
-          clock_time: data.map?.clock_time ?? latestState.clock_time,
+          clock_time: clock,
           game_state: data.map?.game_state ?? 'NONE',
-          team: parseTeam(data),
+          team: parseTeam(data, latestState.team),
           hero: data.hero?.name || null,
+          alive,
           hp_pct: data.hero?.health_percent ?? 100,
           mana_pct: data.hero?.mana_percent ?? 100,
           gold: data.player?.gold ?? 0,
           last_hits: data.player?.last_hits ?? 0,
-          has_observer: hasItem(data.items, ['item_ward_observer', 'item_ward_dispenser']),
-          has_sentry: hasItem(data.items, ['item_ward_sentry', 'item_ward_dispenser']),
-          xpos: typeof data.hero?.xpos === 'number' ? data.hero.xpos : null,
-          ypos: typeof data.hero?.ypos === 'number' ? data.hero.ypos : null
+          ward_counts: counts,
+          has_observer: counts.obs > 0 || counts.disp > 0,
+          has_sentry: counts.sen > 0 || counts.disp > 0,
+          xpos,
+          ypos
         };
       } catch (_) {}
       res.writeHead(200);
@@ -186,24 +243,23 @@ const server = http.createServer((req, res) => {
         if ('show_wards' in p) latestState.show_wards = Boolean(p.show_wards);
         if ('show_farm' in p) latestState.show_farm = Boolean(p.show_farm);
         if ('show_path' in p) latestState.show_path = Boolean(p.show_path);
+        if (p.clear_wards) placedWards = [];
         if ('calibrate' in p) {
           latestState.calibrate = Boolean(p.calibrate);
           miniCfg.calibrate = Boolean(p.calibrate);
           saveSettings(miniCfg);
+        }
+        if (p.autoPreset) {
+          miniCfg = { ...miniCfg, ...calcAutoMinimapBounds(p.autoPreset) };
+          saveSettings(miniCfg);
+          applyMiniBounds();
         }
         if (typeof p.miniX === 'number' || typeof p.miniY === 'number' || typeof p.miniSize === 'number') {
           if (typeof p.miniX === 'number') miniCfg.miniX = Math.round(p.miniX);
           if (typeof p.miniY === 'number') miniCfg.miniY = Math.round(p.miniY);
           if (typeof p.miniSize === 'number') miniCfg.miniSize = Math.round(p.miniSize);
           saveSettings(miniCfg);
-          if (minimapWin) {
-            minimapWin.setBounds({
-              x: miniCfg.miniX,
-              y: miniCfg.miniY,
-              width: miniCfg.miniSize,
-              height: miniCfg.miniSize
-            });
-          }
+          applyMiniBounds();
         }
       } catch (_) {}
       res.writeHead(200);
@@ -222,6 +278,7 @@ const server = http.createServer((req, res) => {
       ...latestState,
       connected: isAlive,
       effective_team: latestState.team_override || latestState.team,
+      placed_wards: placedWards,
       miniCfg
     }));
   } else {
@@ -240,11 +297,12 @@ function createWindows() {
   miniCfg = loadSavedSettings();
   latestState.calibrate = Boolean(miniCfg.calibrate);
 
+  // Большой удобный HUD
   mainWin = new BrowserWindow({
-    width: 410,
-    height: 670,
-    x: 20,
-    y: 36,
+    width: 520,
+    height: 760,
+    x: 24,
+    y: 28,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -273,15 +331,11 @@ function createWindows() {
 
 app.whenReady().then(() => {
   createWindows();
-
   globalShortcut.register('Control+Shift+O', () => {
-    if (!mainWin) return;
-    mainWin.isVisible() ? mainWin.hide() : mainWin.show();
+    if (mainWin) mainWin.isVisible() ? mainWin.hide() : mainWin.show();
   });
-
   globalShortcut.register('Control+Shift+M', () => {
-    if (!minimapWin) return;
-    minimapWin.isVisible() ? minimapWin.hide() : minimapWin.show();
+    if (minimapWin) minimapWin.isVisible() ? minimapWin.hide() : minimapWin.show();
   });
 });
 
