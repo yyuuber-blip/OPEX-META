@@ -300,4 +300,62 @@
       const role = document.getElementById('laneSelect').value;
       const out = document.getElementById('countersOut');
       out.innerHTML = '<div class="muted">Считаем...</div>';
-      const res = await fetch(`https://api.opendota.com
+      const res = await fetch(`https://api.opendota.com/api/heroes/${enemyId}/matchups`);
+      const list = await res.json();
+      const best = list
+        .filter(m => m.games_played >= 40 && heroMap[m.hero_id])
+        .filter(m => role === 'all' || (heroMap[m.hero_id].roles || []).includes(role))
+        .map(m => ({ hero: heroMap[m.hero_id], wr: (1 - m.wins / m.games_played) * 100 }))
+        .sort((a, b) => b.wr - a.wr).slice(0, 7);
+      out.innerHTML = best.map(i => {
+        const short = i.hero.name.replace('npc_dota_hero_', '');
+        return `<div class="counter-item"><img src="${CDN}/apps/dota2/images/dota_react/heroes/${short}.png" /><span>${i.hero.localized_name}</span><strong>${i.wr.toFixed(1)}%</strong></div>`;
+      }).join('') || '<div class="muted">Нет данных</div>';
+    }
+
+    function fmt(sec) {
+      const s = Math.max(0, Math.floor(sec));
+      return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    }
+
+    async function poll() {
+      try {
+        const res = await fetch('http://127.0.0.1:4000/state');
+        const st = await res.json();
+        document.getElementById('liveDot').classList.toggle('on', Boolean(st.connected));
+        document.getElementById('gsiBadge').textContent = st.connected ? 'DOTA 2 LIVE' : 'Ожидание матча';
+        document.getElementById('clockTxt').textContent = fmt(st.clock_time || 0);
+        document.getElementById('teamTxt').textContent = String(st.effective_team || 'radiant').toUpperCase();
+        document.getElementById('heroTitle').textContent = st.hero ? st.hero.replace('npc_dota_hero_', '').toUpperCase() : 'Вне матча';
+        document.getElementById('goldTxt').textContent = (st.gold || 0) + 'g';
+        document.getElementById('hpBar').style.width = (st.hp_pct ?? 100) + '%';
+        document.getElementById('mpBar').style.width = (st.mana_pct ?? 100) + '%';
+        document.getElementById('wardAlert').classList.toggle('show', Boolean(st.has_observer || st.has_sentry));
+
+        const sec = Math.max(0, st.clock_time || 0);
+        const toStack = 54 - (sec % 60);
+        document.getElementById('tStack').textContent = (toStack >= 0 ? toStack : toStack + 60) + 's';
+        document.getElementById('tLotus').textContent = fmt(180 - (sec % 180));
+        document.getElementById('tShrine').textContent = fmt(420 - (sec % 420));
+
+        document.getElementById('gsiInfo').textContent = st.gsi_installed
+          ? (st.connected ? 'Подключено к Dota 2' : 'Конфиг установлен. Перезапусти Dota 2 и зайди в матч.')
+          : 'Конфиг не найден. Положи .cfg в папку Dota 2 вручную.';
+
+        if (!miniInitDone && st.miniCfg) {
+          miniInitDone = true;
+          document.getElementById('rSize').value = st.miniCfg.miniSize;
+          document.getElementById('rX').value = st.miniCfg.miniX;
+          document.getElementById('rY').value = st.miniCfg.miniY;
+          document.getElementById('vSize').textContent = st.miniCfg.miniSize;
+          document.getElementById('vX').textContent = st.miniCfg.miniX;
+          document.getElementById('vY').textContent = st.miniCfg.miniY;
+        }
+      } catch (_) {}
+    }
+
+    loadHeroes();
+    setInterval(poll, 700);
+  </script>
+</body>
+</html>
